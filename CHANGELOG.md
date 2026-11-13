@@ -3,7 +3,7 @@
 ## 13 novembre 2026
 
 ### bimmer/ (bimmer-lab/apps)
-- Modes de conduite du X3 30e (pas de Comfort) : Hybrid, Electric, Electric Eco Pro, Electric Individual, Sport, Sport Individual, Sport Plus, Xtraboost, tous reconnus (numéros PHEV et mots) ; trois créneaux pour le changement de thème (Electric Eco Pro / Hybrid / Sport Plus, Sport Plus → thème Sport et les autres → M par défaut) ; jeton `{{modeName}}` (nom exact du mode) et police `mode` (Barlow 22 px) pour le mode écrit en petit en bas à droite des 11 thèmes ; test `tools/test_drive_modes.js`.
+- Modes de conduite du X3 30e (pas de Comfort) : Hybrid, Electric, Electric Eco Pro, Electric Individual, Sport, Sport Individual, Sport Plus, Xtraboost, tous reconnus (numéros PHEV et mots) ; trois créneaux pour le changement de thème (Electric Eco Pro / Hybrid / Sport Plus, Sport Plus → thème M, Electric Eco Pro → thème Sport, Hybrid → cluster d'origine de BMW par défaut) ; jeton `{{modeName}}` (nom exact du mode) et police `mode` (Barlow 22 px) pour le mode écrit en petit en bas à droite des 11 thèmes ; test `tools/test_drive_modes.js`.
 - Batterie haute tension (%) et autonomie électrique (km) à la place de l'huile : tous les thèmes du cluster et dispositions du HUD, barres et jauges `evRange` / `hvSoc`, réglage « Electric range when full ».
 - Autonomie lue dans la voiture (`KombiIF.displayRangeElectricVehicle`) quand elle existe.
 - Réservoir 50 L, moteur 300 Nm / 135 kW, graduations et étiquettes adaptées.

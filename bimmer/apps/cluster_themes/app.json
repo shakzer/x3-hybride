@@ -167,9 +167,9 @@
     },
     {
       "key": "inHybrid",
-      "label": "In Hybrid",
+      "label": "In Hybrid (BMW's own cluster by default)",
       "type": "choice",
-      "default": "m",
+      "default": "off",
       "options": [
         [
           "off",
@@ -225,7 +225,7 @@
       "key": "inSport",
       "label": "In Sport Plus (also Sport, Sport Individual, Xtraboost)",
       "type": "choice",
-      "default": "sport",
+      "default": "m",
       "options": [
         [
           "off",
@@ -281,7 +281,7 @@
       "key": "inEco",
       "label": "In Electric Eco Pro (also Electric, Electric Individual)",
       "type": "choice",
-      "default": "m",
+      "default": "sport",
       "options": [
         [
           "off",
