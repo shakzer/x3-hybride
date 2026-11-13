@@ -14,6 +14,7 @@
     "layouts.js",
     "shaders.js",
     "icons.js",
+    "emblems.js",
     "shift_score.js",
     "sun.js",
     "cluster_render_client.js",
@@ -1040,6 +1041,66 @@
       "label": "BMW lettering on the badge",
       "type": "bool",
       "default": true
+    },
+    {
+      "key": "emblem",
+      "label": "Sport theme: lettering at the top",
+      "type": "choice",
+      "default": "off",
+      "options": [
+        [
+          "off",
+          "None"
+        ],
+        [
+          "oo1",
+          "1 · ONE OF ONE, condensed italic"
+        ],
+        [
+          "oo2",
+          "2 · ONE OF ONE, wide between two lines"
+        ],
+        [
+          "oo3",
+          "3 · ONE OF ONE, Orbitron italic"
+        ],
+        [
+          "oo4",
+          "4 · ONE / OF / ONE stacked"
+        ],
+        [
+          "oo5",
+          "5 · 1 OF 1"
+        ],
+        [
+          "oo6",
+          "6 · // ONE OF ONE // outline"
+        ],
+        [
+          "ed1",
+          "7 · 1/1 EDITION"
+        ],
+        [
+          "ed2",
+          "8 · ONE OF ONE with EDITION below"
+        ],
+        [
+          "ed3",
+          "9 · 1/1 EDITION on one line"
+        ],
+        [
+          "ed4",
+          "10 · ONE OF ONE with outlined EDITION"
+        ],
+        [
+          "ed5",
+          "11 · EDITION over a big 1/1"
+        ],
+        [
+          "ed6",
+          "12 · ONE OF ONE over outlined EDITION, wide"
+        ]
+      ]
     },
     {
       "key": "demo",

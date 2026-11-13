@@ -21,6 +21,8 @@ C'est une compilation modifiée de projets libres (voir « Crédits et licences 
 
 **Modes de conduite.** Le X3 30e n'a pas de Comfort. Tous ses modes sont reconnus : Hybrid, Electric, Electric Eco Pro, Electric Individual, Sport, Sport Individual, Sport Plus et Xtraboost. Pour changer de thème, ils sont regroupés en trois créneaux : **Electric Eco Pro** (avec Electric et Electric Individual), **Hybrid**, **Sport Plus** (avec Sport, Sport Individual et Xtraboost). Dans les réglages de Cluster Themes et de HUD Widgets, « Change with the drive mode » choisit un thème par créneau. Par défaut : Sport Plus → thème M, Electric Eco Pro → thème Sport, Hybrid → cluster d'origine de BMW (thème désactivé). Le vrai nom du mode, tel que l'écran de la voiture le nomme, est aussi écrit en petit en bas à droite dans les 11 thèmes du cluster.
 
+**Texte « ONE OF ONE » sur le thème Sport.** Réglage « Sport theme: lettering at the top » de Cluster Themes : 12 versions (« ONE OF ONE », « 1/1 EDITION »…) en dégradé aux couleurs du thème M, en haut au centre du thème Sport, désactivé par défaut. C'est un lettrage à nous, pas un logo de marque ; il disparaît quand la carte Waze s'affiche dans le thème.
+
 **Batterie et autonomie.** À la place de la température d'huile : le niveau de la batterie haute tension (%) et l'autonomie électrique (km), avec barre ou jauge, dans tous les thèmes et dispositions, M et Sport en priorité. L'autonomie vient de la voiture quand elle l'envoie (`displayRangeElectricVehicle`), sinon c'est la charge multipliée par l'autonomie pleine (réglage « Electric range when full », 40 km par défaut). Réservoir 50 L, moteur thermique 300 Nm / 135 kW par défaut.
 
 **Cluster Info et Cluster Centre.**

@@ -83,6 +83,8 @@
  *             emptyX, emptyY] (the oil bar shows the "oilSignal" instead, with "oilMin" / "oilMax": hvSoc 0 / 100 for the battery), "strip" [left end x, y, h, slant], "topEnd" x; the middle is black, and the map
  *             window is cut see-through while "holeWhen" is on ("hole", "holeInset", "holeRadius" as fill)
  *   segbar    effect layer; "max" segments, the first round(signal) lit (e.g. "setupLevel:engine"), "slant" px
+ *   emblem    image layer; lettering baked by tools/bake_emblems.py (hud/emblems/<name>.json), painted in a light blue / dark blue /
+ *             red gradient (emblems.js); "setting" names the choice setting that picks which (off = none; hidden while the Waze map is up)
  *   icon      image layer; a line icon from icons.js ("icon": gauge, shock, wheel, cog, stack, therm, oilcan, fuel)
  *   arc also takes "start" and "sweep" in degrees (clockwise from 12 o'clock; negative = anticlockwise)
  *   grid      calibration: effect layer of lines every "step" px (brighter every "major" steps)
@@ -206,6 +208,8 @@ const visible = require('./visible');
 const sun = require('./sun');
 const textRaster = require('./hud_text');
 const { paintIcon } = require('./icons');
+const { paintEmblem } = require('./emblems');
+const hudData = require('./hud_data');
 const shaders = require('./shaders');
 const calibration = require('./calibration');
 const Car = require('./kit/car');
@@ -224,7 +228,7 @@ const CLAIM_MS = 1000;
 
 const BOOST_SCALE = { factor: 0.01, offset: 0, invalid: 255 }; // see header comment
 // the widget types drawn as pixels (image layers, packed into sheets unless "own": true); the rest are shaders
-const IMAGE_TYPES = { text: true, scale: true, stripe: true, badge: true, gridlabels: true, icon: true, swatchimg: true };
+const IMAGE_TYPES = { text: true, scale: true, stripe: true, badge: true, gridlabels: true, icon: true, emblem: true, swatchimg: true };
 const STATUS_ASK_MS = 2000;      // after a rebuild: ask cluster-render for its own status text
 // an image layer is "stalled" until its first pixels reach cluster-render, which after a rebuild takes a second or two
 // through the upload budget: normal. Only one still stalled this long is logged as a problem (and its recovery)
@@ -1775,6 +1779,12 @@ class HudApp {
             }
         } else if (w.type === 'gridlabels') this._paintGridLabels(x);
         else if (w.type === 'icon') this._blit(x, null, paintIcon(w.icon, w.w, w.h, color(t, w.color || 'fg')));
+        else if (w.type === 'emblem') {
+            // the picked lettering ("setting": the choice setting that names it, "off" = none), hidden while the Waze map is up in the theme
+            const name = String(this.setting(w.setting || 'emblem') || 'off');
+            const mask = name === 'off' || this.setting('mapUp') === true || !/^[a-z0-9_]+$/i.test(name) ? null : hudData.json('emblems/' + name + '.json');
+            this._blit(x, null, paintEmblem(mask, w.w, w.h, w.stops));
+        }
         else if (w.type === 'sdash') {
             c.uniform(ref, 'u_size', [w.w, w.h]);
             c.uniform(ref, 'u_geo', w.geo);

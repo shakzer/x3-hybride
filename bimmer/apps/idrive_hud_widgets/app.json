@@ -14,6 +14,7 @@
     "layouts.js",
     "shaders.js",
     "icons.js",
+    "emblems.js",
     "shift_score.js",
     "sun.js",
     "cluster_render_client.js",

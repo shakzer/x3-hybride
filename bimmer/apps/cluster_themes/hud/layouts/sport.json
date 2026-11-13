@@ -817,6 +817,16 @@
       "font": "mode",
       "color": "dim",
       "align": "right"
+    },
+    {
+      "id": "emblem",
+      "type": "emblem",
+      "setting": "emblem",
+      "z": 5,
+      "x": 660,
+      "y": 142,
+      "w": 600,
+      "h": 130
     }
   ]
 }
