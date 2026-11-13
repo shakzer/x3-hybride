@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "apps": [
+    {
+      "path": "bimmer/apps/*",
+      "manifest": "app.json",
+      "icon": "icon.png",
+      "mguHmi": [
+        "ID7"
+      ],
+      "build": {
+        "python": "bimmer/kit/tools/build.py",
+        "args": [
+          "{id}"
+        ],
+        "sdk": "bimmer/oap-sdk",
+        "output": "bimmer/dist/{id}@{version}.tgz",
+        "shared": [
+          "bimmer/kit",
+          "bimmer/shared"
+        ]
+      }
+    },
+    {
+      "path": "eroobeeroo/apps/*",
+      "manifest": "app.json",
+      "icon": "icon.png",
+      "mguHmi": [
+        "ID7"
+      ],
+      "exclude": [
+        "cluster_layouts"
+      ],
+      "build": {
+        "python": "eroobeeroo/kit/tools/build.py",
+        "args": [
+          "{id}"
+        ],
+        "sdk": "eroobeeroo/oap-sdk",
+        "output": "eroobeeroo/dist/{id}@{version}.tgz",
+        "network": [],
+        "shared": [
+          "eroobeeroo/kit"
+        ]
+      }
+    }
+  ]
+}

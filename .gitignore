@@ -1,0 +1,11 @@
+# builds (they contain BMW's SDK, which the Store extracts from your own head unit) and local files
+oap-sdk/
+dist/
+*.mgu
+*.tgz
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store
+bench/.data/
+secret/
