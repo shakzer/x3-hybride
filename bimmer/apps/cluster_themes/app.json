@@ -161,7 +161,7 @@
     },
     {
       "key": "byMode",
-      "label": "Change with HYBRID / ELECTRIC ECO PRO / SPORT",
+      "label": "Change with the drive mode (Electric Eco Pro / Hybrid / Sport Plus)",
       "type": "bool",
       "default": true
     },
@@ -223,7 +223,7 @@
     },
     {
       "key": "inSport",
-      "label": "In Sport",
+      "label": "In Sport Plus (also Sport, Sport Individual, Xtraboost)",
       "type": "choice",
       "default": "sport",
       "options": [
@@ -279,7 +279,7 @@
     },
     {
       "key": "inEco",
-      "label": "In Electric Eco Pro",
+      "label": "In Electric Eco Pro (also Electric, Electric Individual)",
       "type": "choice",
       "default": "m",
       "options": [

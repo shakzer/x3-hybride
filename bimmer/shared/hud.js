@@ -359,6 +359,30 @@ function driveModeOf(raw) {
 }
 
 /**
+ * The drive mode as the car's screens name it, for the small text in every theme ({{modeName}}): the X3 30e's
+ * Hybrid, Electric, Electric Eco Pro, Electric Individual, Sport, Sport Individual, Sport Plus and XtraBoost.
+ * Wire numbers from cauliflowermossgrape's ambient_config (MIT): 15 Sport, 16 Sport individual, 17 Hybrid, 18 Hybrid
+ * Eco (this car calls it Electric Eco Pro), 19 Hybrid comfort, 20 Electric, 21 Electric individual, 23 Sport Plus,
+ * 28 Boost. A number or word that is not known gives null (the group's own name is used then).
+ */
+const DRIVE_NAMES = { 1: 'Sport', 2: 'Sport Plus', 3: 'Sport Individual', 4: 'Hybrid', 5: 'Hybrid', 6: 'Hybrid', 7: 'Electric Eco Pro',
+    8: 'Electric Eco Pro', 9: 'Electric Eco Pro', 10: 'Hybrid', 15: 'Sport', 16: 'Sport Individual', 17: 'Hybrid', 18: 'Electric Eco Pro',
+    19: 'Hybrid', 20: 'Electric', 21: 'Electric Individual', 23: 'Sport Plus', 28: 'Xtraboost' };
+function driveNameOf(raw) {
+    let v = raw;
+    if (typeof v === 'string' && /^\d+$/.test(v.trim())) v = Number(v.trim());
+    if (typeof v === 'number') return DRIVE_NAMES[v] || null;
+    if (typeof v !== 'string') return null;
+    const u = v.trim().toUpperCase(), ind = /INDIVID/.test(u);
+    if (/XTRA|BOOST/.test(u)) return 'Xtraboost';
+    if (/ELECTRIC|ELEKTR/.test(u)) return /ECO/.test(u) ? 'Electric Eco Pro' : ind ? 'Electric Individual' : 'Electric';
+    if (/ECO|EFFICIEN/.test(u)) return 'Electric Eco Pro';
+    if (/SPORT/.test(u)) return /PLUS|EXPERT/.test(u) ? 'Sport Plus' : ind ? 'Sport Individual' : 'Sport';
+    if (/HYBRID|COMFORT|ADAPTIVE/.test(u)) return 'Hybrid';
+    return null;
+}
+
+/**
  * The panel's and the HUD's scene ids from cluster-render's status text ("target panel: slot 0x203 scene 0x10004f8
  * 1920x720: ..."), as numbers in hex; null when either line is missing (an older service, the bench).
  */
@@ -436,6 +460,7 @@ class HudApp {
         this.driveMode = null;           // 'hybrid' | 'electric' | 'eco' | 'sport', once the car has said
         this.driveRaw = null;            // a drive mode value the car sent that we don't know (shown in the status)
         this.driveVariant = null;        // 'plus' (Sport+ / Comfort+ / Eco Pro+), 'individual', or null
+        this.driveName = null;           // the mode as the car names it (driveNameOf), for the small text in the themes
         this.carUnits = { press: null, temp: null, psiSeen: false };   // the car's display units, for the TPMS values
         this.program = null;             // 'S' / 'M' from the MDrive gearbox display, else null (D)
         this.gradeMode = null;           // the same display for the shift grades: D / S / M, null while unknown
@@ -684,7 +709,7 @@ class HudApp {
                 },
                 statusFESVehicleDynamicSwitchHMI: (v) => {
                     const raw = v && v.actualValueModeDrivingExperience;
-                    const m = driveModeOf(raw), variant = m ? driveVariantOf(raw) : null;
+                    const m = driveModeOf(raw), variant = m ? driveVariantOf(raw) : null, name = m ? driveNameOf(raw) : null;
                     if (!m) {
                         // a value we don't know (M cars: Efficient / Sport / Sport+, issue #8): logged and shown on the
                         // Settings tab's status line, so a driver can tell us what the car sends
@@ -693,9 +718,9 @@ class HudApp {
                         return;
                     }
                     this.driveRaw = null;
-                    if (m === this.driveMode && variant === this.driveVariant) return;
-                    this.log.info('drive mode ' + MODE_NAME[m] + (variant ? ' ' + variant : '') + ' (' + raw + ')');
-                    this.driveMode = m; this.driveVariant = variant;
+                    if (m === this.driveMode && variant === this.driveVariant && name === this.driveName) return;
+                    this.log.info('drive mode ' + (name || MODE_NAME[m]) + ' (' + raw + ')');
+                    this.driveMode = m; this.driveVariant = variant; this.driveName = name;
                     if (this._layoutName() !== this.activeName) this._rebuild(); else this._status();
                 },
             },
@@ -1069,7 +1094,7 @@ class HudApp {
         if (this.problem) return this.label + ': ' + this.problem;
         const byMode = this.setting('byMode') === true;
         const mode = byMode ? (this.driveRaw ? ' (drive mode not recognised: the car sends ' + this.driveRaw + ')'
-            : this.driveMode ? ' (' + MODE_NAME[this.driveMode] + ')' : ' (drive mode not seen yet)') : '';
+            : this.driveMode ? ' (' + (this.driveName || MODE_NAME[this.driveMode]) + ')' : ' (drive mode not seen yet)') : '';
         const what = this.target === 'panel' ? 'cluster' : 'HUD';
         if (this.activeName === 'off' && this.claimBy) return this.label + ' off: ' + this.claimBy.charAt(0).toUpperCase() + this.claimBy.slice(1) + ' has the HUD; it comes back when that app lets go';
         if (this.activeName === 'off' && this.screen.yielded) return this.label + ' off: ' + this.screen.otherName + ' has the screen, pick one here to take it back';
@@ -1466,12 +1491,13 @@ class HudApp {
             }
             case 'mode': {
                 if (!this.driveMode) return '';
+                if (this.driveName) return this.driveName.toUpperCase();
                 const base = { sport: 'SPORT', eco: 'ELECTRIC ECO PRO', electric: 'ELECTRIC ECO PRO', hybrid: 'HYBRID' }[this.driveMode] || 'HYBRID';
                 return base + (this.driveVariant === 'plus' ? ' PLUS' : this.driveVariant === 'individual' ? ' INDIVIDUAL' : '');
             }
             case 'modeName': {      // the drive mode as the car's own screens write it: "Hybrid", "Electric Eco Pro", "Sport Plus"
                 if (!this.driveMode) return '';
-                return (MODE_NAME[this.driveMode] || 'Hybrid') + (this.driveVariant === 'plus' ? ' Plus' : this.driveVariant === 'individual' ? ' Individual' : '');
+                return this.driveName || (MODE_NAME[this.driveMode] || 'Hybrid') + (this.driveVariant === 'plus' ? ' Plus' : this.driveVariant === 'individual' ? ' Individual' : '');
             }
             case 'gear': {
                 const d = this.car.data();
@@ -2374,4 +2400,5 @@ function dimTheme(theme, k) {
 function pad2(n) { return n < 10 ? '0' + n : String(n); }
 function mib(bytes) { return (bytes / 1048576).toFixed(1) + ' MiB'; }
 
+HudApp.driveModeOf = driveModeOf; HudApp.driveNameOf = driveNameOf; HudApp.driveVariantOf = driveVariantOf;   // for tools/test_drive_modes.js
 module.exports = HudApp;

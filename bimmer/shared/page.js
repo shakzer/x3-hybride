@@ -35,7 +35,7 @@ const C = {
 const RAIL = { x: 16, y: 54, w: 252, h: 66, gap: 8 };
 const RAIL7 = { x: 16, y: 54, w: 252, h: 58, gap: 6 };     // seven tabs or more: a little shorter, so they fit
 const CX = 300, CR = 1584, CW = CR - CX;
-const MODES = [['inHybrid', 'Hybrid'], ['inEco', 'Electric Eco Pro'], ['inSport', 'Sport']];
+const MODES = [['inHybrid', 'Hybrid'], ['inEco', 'Electric Eco Pro'], ['inSport', 'Sport Plus']];
 const MODE_KEY = { hybrid: 'inHybrid', electric: 'inEco', eco: 'inEco', sport: 'inSport', comfort: 'inHybrid' };
 const TAB = {
     look: { icon: 'screen' },

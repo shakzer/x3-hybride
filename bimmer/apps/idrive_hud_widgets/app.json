@@ -143,7 +143,7 @@
     },
     {
       "key": "byMode",
-      "label": "Change with HYBRID / ELECTRIC ECO PRO / SPORT",
+      "label": "Change with the drive mode (Electric Eco Pro / Hybrid / Sport Plus)",
       "type": "bool",
       "default": true
     },
@@ -201,7 +201,7 @@
     },
     {
       "key": "inSport",
-      "label": "In Sport (off by default: BMW's Sport HUD takes the middle)",
+      "label": "In Sport Plus (also Sport, Sport Individual, Xtraboost; off by default: BMW's Sport HUD takes the middle)",
       "type": "choice",
       "default": "off",
       "options": [
@@ -253,7 +253,7 @@
     },
     {
       "key": "inEco",
-      "label": "In Electric Eco Pro (off by default: BMW's own HUD)",
+      "label": "In Electric Eco Pro (also Electric, Electric Individual; off by default: BMW's own HUD)",
       "type": "choice",
       "default": "off",
       "options": [
