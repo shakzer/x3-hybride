@@ -1046,7 +1046,7 @@
       "key": "emblem",
       "label": "Sport theme: lettering at the top",
       "type": "choice",
-      "default": "off",
+      "default": "oo4",
       "options": [
         [
           "off",
@@ -1066,7 +1066,11 @@
         ],
         [
           "oo4",
-          "4 · ONE / OF / ONE stacked"
+          "4 · ONE / OF / ONE stacked, italic"
+        ],
+        [
+          "oo4b",
+          "4b · ONE / OF / ONE stacked, upright and light"
         ],
         [
           "oo5",

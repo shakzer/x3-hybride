@@ -9,7 +9,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FONTS = os.path.join(HERE, 'fonts-src') + os.sep
 OUT = os.path.join(HERE, '..', 'apps', 'cluster_themes', 'hud', 'emblems')
 S = 4                      # supersampling, then LANCZOS down to the box
-BOX_W, BOX_H = 600, 130    # the widget box in sport.json (the lettering is fitted into it)
+BOX_W, BOX_H = 360, 96     # the widget box in sport.json (the lettering is fitted into it)
 
 
 def font(name, size, var=None):
@@ -81,6 +81,11 @@ def variants():
     lw = int(one.width * 0.30)
     v['oo4'] = skew(stack([one, side([bar(lw, 4 * S), of, bar(lw, 4 * S)], 18), one], 14), 0.15)
     n = run('1', font('BarlowCondensed-Bold.ttf', 190), 0); o = run('OF', font('BarlowCondensed-Bold.ttf', 64), 12)
+    # 4b: the same stack, upright and lighter, as clean as the car's own screens
+    SC = 'BarlowSemiCondensed-Medium.ttf'
+    one = run('ONE', font(SC, 70), 36); of = run('OF', font(SC, 26), 18)
+    lw = int(one.width * 0.34)
+    v['oo4b'] = stack([one, side([bar(lw, 3 * S), of, bar(lw, 3 * S)], 16), one], 12)
     v['oo5'] = skew(side([n, o, n], 34), 0.2)
     v['oo6'] = skew(outline('// ONE OF ONE //', font('Orbitron[wght].ttf', 50, 'Bold'), 10, 3), 0.2)
     # "EDITION" versions
