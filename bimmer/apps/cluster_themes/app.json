@@ -1046,7 +1046,7 @@
       "key": "emblem",
       "label": "Sport theme: lettering at the top",
       "type": "choice",
-      "default": "oo4",
+      "default": "oo4b",
       "options": [
         [
           "off",
