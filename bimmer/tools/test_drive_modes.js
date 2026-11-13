@@ -16,7 +16,7 @@ let bad = 0;
 function eq(what, got, want) { if (got !== want) { bad++; console.log('FAIL ' + what + ': got ' + JSON.stringify(got) + ', want ' + JSON.stringify(want)); } }
 const cases = [
     // [raw, group, name]
-    [17, 'hybrid', 'Hybrid'], [19, 'hybrid', 'Hybrid'],
+    [17, 'hybrid', 'Hybrid'], [19, 'hybrid', 'Hybrid'], [22, 'hybrid', 'Battery Control'], ['PHEV_BATTERY_CONTROL', 'hybrid', 'Battery Control'], ['Battery control', 'hybrid', 'Battery Control'],
     [20, 'eco', 'Electric'], [21, 'eco', 'Electric Individual'], [18, 'eco', 'Electric Eco Pro'],
     [15, 'sport', 'Sport'], [16, 'sport', 'Sport Individual'], [23, 'sport', 'Sport Plus'], [28, 'sport', 'Xtraboost'],
     ['PHEV_HYBRID_STANDARD', 'hybrid', 'Hybrid'], ['PHEV_ELECTRIC_STANDARD', 'eco', 'Electric'],

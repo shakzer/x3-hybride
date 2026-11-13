@@ -168,7 +168,7 @@
     },
     {
       "key": "inHybrid",
-      "label": "In Hybrid (BMW's own cluster by default)",
+      "label": "In Hybrid (also Battery Control; BMW's own cluster by default)",
       "type": "choice",
       "default": "off",
       "options": [

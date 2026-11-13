@@ -150,7 +150,7 @@
     },
     {
       "key": "inHybrid",
-      "label": "In Hybrid (Daily by default; BMW keeps its speed bottom-left)",
+      "label": "In Hybrid (also Battery Control; Daily by default; BMW keeps its speed bottom-left)",
       "type": "choice",
       "default": "daily",
       "options": [

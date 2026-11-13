@@ -350,11 +350,12 @@ function driveModeOf(raw) {
         if ((v >= 1 && v <= 3) || v === 15 || v === 16 || v === 23 || v === 28) return 'sport';     // 15 / 16 / 23: PHEV Sport, Sport individual, Sport Plus; 28 Boost
         if ((v >= 7 && v <= 9) || v === 18) return 'eco';                                           // 18: PHEV Hybrid Eco (Eco Pro)
         if (v === 20 || v === 21) return 'eco';                                                     // PHEV Electric, Electric individual: this car's Electric Eco Pro
-        if ((v >= 4 && v <= 6) || v === 10 || v === 17 || v === 19) return 'hybrid';                // no Comfort on a plug-in hybrid: Hybrid
+        if ((v >= 4 && v <= 6) || v === 10 || v === 17 || v === 19 || v === 22) return 'hybrid';   // no Comfort on a plug-in hybrid: Hybrid; 22: PHEV Battery Control (eroobeeroo's FES table)
         return null;
     }
     if (typeof v !== 'string') return null;
     const u = v.trim().toUpperCase();
+    if (/BATTERY|BATTERIE/.test(u)) return 'hybrid';
     if (/ELECTRIC|ELEKTR/.test(u)) return 'eco';
     if (/ECO|EFFICIEN/.test(u)) return 'eco';
     if (/SPORT|BOOST/.test(u)) return 'sport';
@@ -366,12 +367,12 @@ function driveModeOf(raw) {
  * The drive mode as the car's screens name it, for the small text in every theme ({{modeName}}): the X3 30e's
  * Hybrid, Electric, Electric Eco Pro, Electric Individual, Sport, Sport Individual, Sport Plus and XtraBoost.
  * Wire numbers from cauliflowermossgrape's ambient_config (MIT): 15 Sport, 16 Sport individual, 17 Hybrid, 18 Hybrid
- * Eco (this car calls it Electric Eco Pro), 19 Hybrid comfort, 20 Electric, 21 Electric individual, 23 Sport Plus,
+ * Eco (this car calls it Electric Eco Pro), 19 Hybrid comfort, 20 Electric, 21 Electric individual, 22 Battery Control, 23 Sport Plus,
  * 28 Boost. A number or word that is not known gives null (the group's own name is used then).
  */
 const DRIVE_NAMES = { 1: 'Sport', 2: 'Sport Plus', 3: 'Sport Individual', 4: 'Hybrid', 5: 'Hybrid', 6: 'Hybrid', 7: 'Electric Eco Pro',
     8: 'Electric Eco Pro', 9: 'Electric Eco Pro', 10: 'Hybrid', 15: 'Sport', 16: 'Sport Individual', 17: 'Hybrid', 18: 'Electric Eco Pro',
-    19: 'Hybrid', 20: 'Electric', 21: 'Electric Individual', 23: 'Sport Plus', 28: 'Xtraboost' };
+    19: 'Hybrid', 20: 'Electric', 21: 'Electric Individual', 22: 'Battery Control', 23: 'Sport Plus', 28: 'Xtraboost' };
 function driveNameOf(raw) {
     let v = raw;
     if (typeof v === 'string' && /^\d+$/.test(v.trim())) v = Number(v.trim());
@@ -379,6 +380,7 @@ function driveNameOf(raw) {
     if (typeof v !== 'string') return null;
     const u = v.trim().toUpperCase(), ind = /INDIVID/.test(u);
     if (/XTRA|BOOST/.test(u)) return 'Xtraboost';
+    if (/BATTERY|BATTERIE/.test(u)) return 'Battery Control';
     if (/ELECTRIC|ELEKTR/.test(u)) return /ECO/.test(u) ? 'Electric Eco Pro' : ind ? 'Electric Individual' : 'Electric';
     if (/ECO|EFFICIEN/.test(u)) return 'Electric Eco Pro';
     if (/SPORT/.test(u)) return /PLUS|EXPERT/.test(u) ? 'Sport Plus' : ind ? 'Sport Individual' : 'Sport';
