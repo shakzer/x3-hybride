@@ -42,21 +42,27 @@ def emblem(x, y, keep):
 
 # ------------------------------------------------------------------------------------------------ M Blade
 # Waze's map is drawn at a fixed place: the centred 1088x480 of the panel (x 416..1504, y 120..600, its middle at x 960).
-# A window has to cover that middle, so with the map up (or Cluster Centre / Cluster Info) M Blade is rebuilt: a smaller
-# card on the left, the window in the middle (x 600..1010, y 168..600), the blade and its gauges moved right by DX.
-DX = 148
+# BMW draws a black box over x 1406..1597, y 342..419, so a window can show the map up to about x 1396. With the map up
+# (or Cluster Centre / Cluster Info) the theme is rebuilt as in the Sport theme: the window in the middle (x 534..1386,
+# y 120..600, the same as Sport's), the rev blade leaning on the left, the card with the gear and speed on the right, the
+# gauges below it, nothing under the map.
+G_DX = 190          # how far the gauge pairs move right while the map is up
 
 
-def mb_right(dx, tog, pre):
-    """The blade's labels and the two gauge pairs with their numbers, shifted right by dx, shown while `tog`; the oil and
-    outside temperatures (a column on the right, higher up while the blade is shifted so they clear the second gauge)."""
+def mb_blade_labels(tog, pre, xr0, slope, ytop, mark7):
+    """The 0..7 marks along the blade's right edge (x of the edge at ytop, its slope), 0 at y 610, 7 at y mark7."""
+    W = []
+    for i in range(8):
+        y = 610 - i * (610 - mark7) / 7.0
+        xr = xr0 + slope * (y - ytop)
+        W.append(text(pre + 'n%d' % i, round(xr + 42 - 18), round(y - 19), 36, 38, str(i), 'm_num', align='center', conn=1, toggle=tog))
+    return W
+
+
+def mb_gauges(dx, tog, pre, oil_x):
+    """The numbers of the two gauge pairs and their ranges (shifted right by dx), and the oil / outside temperatures."""
     W = []
     k = {'toggle': tog}
-    for i in range(8):
-        y = 610 - i * (610 - 135) / 7.0
-        xr = 1347 - 0.643 * (y - 105)
-        W.append(text(pre + 'n%d' % i, round(xr + 42 - 18) + dx, round(y - 19), 36, 38, str(i), 'm_num', align='center', conn=1, **k))
-    W.append(text(pre + 'rpm_unit', 1240 + dx, 64, 170, 29, '1/min x1000', 'm_tiny', 'faint', conn=1, **k))
     # battery gauge (g0) and fuel gauge (g1): the numbers left of each pair of lines, each range under its own pair
     W.append(text(pre + 'b_hi', 1242 + dx, 426, 100, 28, '100', 'm_gl', 'bluegrey', 'right', 1, **k))
     W.append(text(pre + 'b_mid', 1189 + dx, 501, 100, 28, '50', 'm_gl', 'bluegrey', 'right', 1, **k))
@@ -70,43 +76,45 @@ def mb_right(dx, tog, pre):
     W.append(text(pre + 'range', 1348 + dx, 614, 90, 34, '{{range}}', 'm_mid', 'fg', 'right', 1, **k))
     W.append(text(pre + 'range_unit', 1444 + dx, 620, 44, 29, '{{u:distLc}}', 'm_tiny', 'dim', conn=1, **k))
     # the oil and outside temperatures in the free space on the right, under BMW's black box (x 1406..1597, y 342..419)
-    # while the blade is where it was; above it (hood at x 1650 is y 75, at 1830 y 140) while it is shifted
-    y0 = 446 if dx == 0 else 196
-    W.append(icon(pre + 'oil_icon', 'oilcan', 1650, y0, 29, 34, 'dim', 1, **k))
-    W.append(text(pre + 'oil', 1684, y0 + 1, 96, 34, '{{oil}}', 'm_mid', 'fg', 'right', 1, **k))
-    W.append(text(pre + 'oil_unit', 1786, y0 + 7, 44, 29, '{{u:temp}}', 'm_tiny', 'dim', conn=1, **k))
-    W.append(icon(pre + 'out_icon', 'therm', 1650, y0 + 60, 29, 34, 'dim', 1, **k))
-    W.append(text(pre + 'outside', 1684, y0 + 61, 96, 34, '{{ambient}}', 'm_mid', 'fg', 'right', 1, **k))
-    W.append(text(pre + 'outside_unit', 1786, y0 + 67, 44, 29, '{{u:temp}}', 'm_tiny', 'dim', conn=1, **k))
+    W.append(icon(pre + 'oil_icon', 'oilcan', oil_x, 446, 29, 34, 'dim', 1, **k))
+    W.append(text(pre + 'oil', oil_x + 34, 447, 84, 34, '{{oil}}', 'm_mid', 'fg', 'right', 1, **k))
+    W.append(text(pre + 'oil_unit', oil_x + 122, 453, 44, 29, '{{u:temp}}', 'm_tiny', 'dim', conn=1, **k))
+    W.append(icon(pre + 'out_icon', 'therm', oil_x, 506, 29, 34, 'dim', 1, **k))
+    W.append(text(pre + 'outside', oil_x + 34, 507, 84, 34, '{{ambient}}', 'm_mid', 'fg', 'right', 1, **k))
+    W.append(text(pre + 'outside_unit', oil_x + 122, 513, 44, 29, '{{u:temp}}', 'm_tiny', 'dim', conn=1, **k))
     return W
 
 
 def mblade():
     W = []
-    base = {
-        'type': 'mblade', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 720,
-        'stripe1': [375, 188, 196, 456], 'stripe2': [528, 218, 372, 441], 'stripeW': [92, 54],
-        'scale': [135, 610], 'rpmMax': 7000,
-    }
+    base = {'type': 'mblade', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 720, 'rpmMax': 7000}
     W.append(dict(base, id='backdrop', toggle='!mapUp', card=[116, 149, 592, 34], cardB=[909, 1002, 322, 863],
-                  plate=[301, 386, 661, 606], plateRight=919, bl=[105, 609, 1178, -0.6], br=[1347, -0.643, 1037, 707],
+                  plate=[301, 386, 661, 606], plateRight=919,
+                  stripe1=[375, 188, 196, 456], stripe2=[528, 218, 372, 441], stripeW=[92, 54],
+                  bl=[105, 609, 1178, -0.6], br=[1347, -0.643, 1037, 707], scale=[135, 610],
                   g0=[1371, 427, 1260, 601], g1=[1532, 427, 1428, 601]))
-    # with the map up: the window in the middle, a small card on the left, the blade and its gauges DX to the right
-    W.append(dict(base, id='backdrop_open', toggle='mapUp', card=[116, 149, 592, 34], cardB=[500, 556, 322, 460],
-                  bl=[105, 609, 1178 + DX, -0.6], br=[1347 + DX, -0.643, 1037 + DX, 640],
-                  g0=[1371 + DX, 427, 1260 + DX, 601], g1=[1532 + DX, 427, 1428 + DX, 601],
-                  hole=[592, 160, 426, 448], holeWhen='mapUp', holeInset=8, holeRadius=22))
+    # with the map up, as in Sport: the blade on the left (leaning right, 0 at the bottom, 7 at y 190), the card with the
+    # gear and speed on the right under the hood and over BMW's black box, the gauge pairs below it
+    W.append(dict(base, id='backdrop_open', toggle='mapUp', card=[1430, 150, 330, 26], cardB=[1735, 1790, 240, 1700],
+                  stripe1=[1600, 152, 1500, 330], stripe2=[1700, 160, 1635, 328], stripeW=[54, 30],
+                  bl=[165, 610, 305, -0.55], br=[445, -0.58, 195, 20], scale=[190, 610],
+                  g0=[1371 + G_DX, 427, 1260 + G_DX, 601], g1=[1532 + G_DX, 427, 1428 + G_DX, 601],
+                  hole=[524, 110, 872, 500], holeWhen='mapUp', holeInset=10, holeRadius=28))
     W.append(shiftlight(750, 32))          # where BMW's own shift light sits (x 750..1170), as on the M and Sport themes
     # (no ONE OF ONE lettering here: centred under the shift light it runs into the card's corner and the blade's first line)
-    # gear and speed on the plate; on the small card while the window is open
+    # gear and speed on the plate; on the card at the right while the window is open
     W.append(text('gear', 700, 285, 240, 117, '{{gear}}', 'm_gear', align='center', toggle='!mapUp'))
     W.append(text('speed', 700, 400, 240, 82, '{{speed}}', 'm_speed', align='center', toggle='!mapUp'))
     W.append(text('speed_unit', 700, 480, 240, 29, '{{u:speedLc}}', 'm_tiny', 'dim', 'center', toggle='!mapUp'))
-    W.append(text('mgear', 216, 262, 240, 117, '{{gear}}', 'm_gear', align='center', toggle='mapUp'))
-    W.append(text('mspeed', 216, 386, 240, 82, '{{speed}}', 'm_speed', align='center', toggle='mapUp'))
-    W.append(text('mspeed_unit', 216, 466, 240, 29, '{{u:speedLc}}', 'm_tiny', 'dim', 'center', toggle='mapUp'))
-    W.extend(mb_right(0, '!mapUp', ''))
-    W.extend(mb_right(DX, 'mapUp', 'o_'))
+    W.append(text('mgear', 1458, 160, 150, 70, '{{gear}}', 's_gear', align='left', toggle='mapUp'))
+    W.append(text('mspeed', 1458, 232, 160, 82, '{{speed}}', 'm_speed', align='left', toggle='mapUp'))
+    W.append(text('mspeed_unit', 1622, 284, 110, 29, '{{u:speedLc}}', 'm_tiny', 'dim', 'left', toggle='mapUp'))
+    W.extend(mb_blade_labels('!mapUp', '', 1347, -0.643, 105, 135))
+    W.append(text('rpm_unit', 1240, 64, 170, 29, '1/min x1000', 'm_tiny', 'faint', conn=1, toggle='!mapUp'))
+    W.extend(mb_blade_labels('mapUp', 'o_', 445, -0.58, 165, 190))
+    W.append(text('o_rpm_unit', 300, 108, 170, 29, '1/min x1000', 'm_tiny', 'faint', conn=1, toggle='mapUp'))
+    W.extend(mb_gauges(0, '!mapUp', '', 1650))
+    W.extend(mb_gauges(G_DX, 'mapUp', 'o_', 1742))
     # bottom row: the clock on the left (it stops before BMW's belt light at x 587), the battery charge on the right
     W.append(text('time', 230, 672, 133, 34, '{{time}}', 'm_mid', 'fg', 'right'))
     W.append(text('ampm', 369, 678, 53, 29, '{{ampmLc}}', 'm_tiny', 'dim'))
@@ -121,10 +129,10 @@ def mblade():
                   "the stock-style shift light at the top), and two thin gauge pairs to its right: the hybrid battery (in place of the "
                   "photo's oil temperature) and the fuel with the range. The battery charge runs along the bottom, clear of BMW's belt "
                   "light (x 587..626, y 663..700); the oil and outside temperatures are on the right. Waze's map is drawn at the centred "
-                  "1088x480 of the panel, so with 'Show Waze map inside the theme' (or Cluster Centre / Cluster Info) the theme is rebuilt "
-                  "(backdrop_open and the o_ readouts): a small card on the left with the gear and speed, the see-through window at "
-                  "x 600..1010, y 168..600 over the map's middle, and the blade and gauges moved 148 px right. The blade and the gauges "
-                  "keep clear of the black box BMW draws at x 1406..1597, y 342..419. Widget reference: shared/hud.js header.",
+                  "1088x480 of the panel and cannot be moved, so with 'Show Waze map inside the theme' (or Cluster Centre / Cluster Info) "
+                  "the theme is rebuilt as the Sport theme is (backdrop_open and the o_ readouts): the see-through window in the middle "
+                  "(x 534..1386, y 120..600), the blade on the left, a small card with the gear and speed and the gauges on the right, "
+                  "nothing under the map. Clear of the black box BMW draws at x 1406..1597, y 342..419. Widget reference: shared/hud.js header.",
         'widgets': W,
     }
 
@@ -132,14 +140,17 @@ def mblade():
 # ------------------------------------------------------------------------------------------------ Navi
 def navi():
     W = []
-    W.append({
-        'id': 'backdrop', 'type': 'navi', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 720,
-        'band': {'tip': [1.5, 179.7], 'slope': 0.932, 'bottom': 618, 'sep': [93.6, 0.0225], 'edge': [224.5, -0.034], 'top': 227},
-        'scale': [236, 612],
-        'line': [474, 618, 1404, 1453], 'line2': [577, 1500, 1620],
-        'barL': [152, 679, 240], 'barR': [1270, 679, 210],
-        'hole': [416, 120, 984, 488], 'holeWhen': 'mapUp', 'holeInset': 8, 'holeRadius': 34,
-    })
+    base = {'type': 'navi', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 720,
+            'scale': [236, 612], 'line2': [577, 1500, 1620], 'barL': [152, 679, 240], 'barR': [1270, 679, 210]}
+    W.append(dict(base, id='backdrop', toggle='!mapUp',
+                  band={'tip': [1.5, 179.7], 'slope': 0.932, 'bottom': 618, 'sep': [93.6, 0.0225], 'edge': [224.5, -0.034], 'top': 227},
+                  line=[474, 618, 1404, 1453]))
+    # with the map up, as in Sport: the window in the middle (x 534..1386, y 120..600), the band steeper and narrower so it
+    # stays left of it, nothing under the map; the gear and speed go to the right
+    W.append(dict(base, id='backdrop_open', toggle='mapUp',
+                  band={'tip': [40, 179.7], 'slope': 1.6, 'bottom': 618, 'sep': [80, 0.0225], 'edge': [190, -0.034], 'top': 227},
+                  line=[500, 618, 1404, 1453],
+                  hole=[524, 110, 872, 500], holeWhen='mapUp', holeInset=10, holeRadius=28))
     W.append(shiftlight(750, 34))          # where BMW's own shift light sits (x 750..1170)
     W.append(emblem(780, 100, False))      # the lettering, centred right under the shift light, over the gear; hidden while the map window is open
     # speed scale labels (SPEED_SCALE 0..250 / 0..160 mph) along the band's lower-left side
@@ -147,14 +158,17 @@ def navi():
         y = 612 - 47 * i
         xl = 1.5 + (y - 179.7) / 0.932
         W.append(text('spd%d' % i, round(xl - 24 - 70), round(y - 19), 70, 38, '{{spd:%d}}' % i, 'm_num', align='right',
-                      near=['speed', i]))
-    # gear and speed: big in the middle while there is no map window, small at the lower left under the band while there is
+                      near=['speed', i], toggle='!mapUp'))
+        xo = 40 + (y - 179.7) / 1.6
+        W.append(text('o_spd%d' % i, round(xo - 24 - 70), round(y - 19), 70, 38, '{{spd:%d}}' % i, 'm_num', align='right',
+                      near=['speed', i], toggle='mapUp'))
+    # gear and speed: big in the middle while there is no map window, big on the right (above BMW's black box) while there is
     W.append(text('gear', 810, 215, 300, 117, '{{gear}}', 'm_gear', align='center', toggle='!mapUp'))
     W.append(text('speed', 760, 340, 400, 82, '{{speed}}', 'm_speed', align='center', toggle='!mapUp'))
     W.append(text('speed_unit', 760, 424, 400, 29, '{{u:speedLc}}', 'm_tiny', 'dim', 'center', toggle='!mapUp'))
-    W.append(text('mgear', 40, 436, 190, 70, '{{gear}}', 's_gear', align='left', toggle='mapUp'))
-    W.append(text('mspeed', 40, 506, 200, 82, '{{speed}}', 'm_speed', align='left', toggle='mapUp'))
-    W.append(text('mspeed_unit', 176, 558, 80, 29, '{{u:speedLc}}', 'm_tiny', 'dim', 'left', toggle='mapUp'))
+    W.append(text('mgear', 1590, 150, 240, 117, '{{gear}}', 'm_gear', align='center', toggle='mapUp'))
+    W.append(text('mspeed', 1600, 268, 220, 82, '{{speed}}', 'm_speed', align='center', toggle='mapUp'))
+    W.append(text('mspeed_unit', 1670, 352, 80, 29, '{{u:speedLc}}', 'm_tiny', 'dim', 'center', toggle='mapUp'))
     # the two bars along the bottom, each with its remaining range above its right end: the fuel on the left, the hybrid
     # battery on the right (its charge above its left end); the clock between them stops before BMW's belt light (x 587)
     W.append(icon('fuel_icon', 'fuel', 112, 662, 29, 34))
@@ -179,12 +193,12 @@ def navi():
         'schemaVersion': 2, 'name': 'Navi', 'theme': 'navi',
         '_about': "Navi, after a photo of a BMW map view (Nov 14 2026), generated by tools/gen_mblade_navi.py (edit that and regenerate): "
                   "a wide diagonal speed band on the left (textured blue stripe, violet stripe, a white marker at the speed on the "
-                  "same scale as the Sport theme), the big rounded map window (x 424..1392, y 128..600, inside the map slot and left of "
-                  "BMW's black box at x 1406) with the white line under it that steps up at the right, and thin bars along the bottom: "
+                  "same scale as the Sport theme), the big rounded map window with the white line under it that steps up at the right, and thin bars along the bottom: "
                   "fuel with its range on the left, the hybrid battery with its electric range on the right (in place of the photo's oil "
                   "temperature, which moves to the free column on the right). The stock-style shift light and the lettering are at the top. Without a "
-                  "map window the gear and the speed are big in the middle; with one (Waze, Cluster Centre, Cluster Info) they move under "
-                  "the band. Clear of BMW's belt light (x 587..626, y 663..700). Widget reference: shared/hud.js header.",
+                  "map window the gear and the speed are big in the middle; with one (Waze, Cluster Centre, Cluster Info) the theme is rebuilt "
+                  "as the Sport theme is (backdrop_open and the o_ readouts): the window at x 534..1386, y 120..600, the band steeper "
+                  "and narrower on the left, the gear and speed big on the right above BMW's black box, nothing under the map. Clear of BMW's belt light (x 587..626, y 663..700). Widget reference: shared/hud.js header.",
         'widgets': W,
     }
 

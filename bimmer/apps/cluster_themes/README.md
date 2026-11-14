@@ -49,7 +49,7 @@ The look of BMW's newer Live Cockpit Sport view.
 
 A blue M card on the left and one big red rev blade on the right (0 to 7000 rpm, with the marks around your redline), copied from a screenshot of a cluster style seen online. Added next to M and Sport, they are not replaced.
 
-- **Left:** a blue card with M-coloured stripes, the gear on a dark plate and the speed under it. With "Show Waze map inside the theme" or Cluster Centre on, the theme is rebuilt: the card shrinks to the left (with the gear and speed), the window opens in the middle over the map's centre, and the blade and its gauges move a little to the right. (Waze draws its map at a fixed place, the centre of the panel, so the window has to be there; it cannot sit on the card as in the screenshot.)
+- **Left:** a blue card with M-coloured stripes, the gear on a dark plate and the speed under it. With "Show Waze map inside the theme" or Cluster Centre on, the theme is rebuilt as the Sport theme is: the window opens in the middle (the map's full height), the rev blade stays on the left, the card with the gear and speed moves to the right, with the gauges under it. Nothing is hidden under the map. (Waze draws its map at a fixed place, the centre of the panel, and BMW's black gear box covers its right edge, so the window shows the middle 852 px of it; it cannot sit on the card as in the screenshot.)
 - **Right:** the revs as the red blade, then two thin slanted gauges: the **hybrid battery** (in the place the photo has an oil gauge) with the electric range under it, and the **fuel** with the range under it. The battery charge is also written at the bottom right, the clock at the bottom left.
 - **Oil and outside temperature:** in the free space on the right, under BMW's black gear box.
 - **Top:** the shift light, which sits where BMW's own does. There is no ONE OF ONE lettering in this theme: centred under the shift light it ran into the card and the blade.
@@ -60,7 +60,7 @@ A blue M card on the left and one big red rev blade on the right (0 to 7000 rpm,
 
 A diagonal speed band on the left, a big rounded window in the middle for the map and a thin line along the bottom, copied from the same screenshot.
 
-- **Left:** the speed as a blue band running down to the lower right, with the speed scale along its edge and a purple band beside it. With the middle window closed, the gear and speed are big in the centre; with it open, they go small at the lower left.
+- **Left:** the speed as a blue band running down to the lower right, with the speed scale along its edge and a purple band beside it. With the middle window closed, the gear and speed are big in the centre; with it open, the band gets steeper and narrower to stay left of the window, and the gear and speed go big on the right.
 - **Middle:** the map window (Waze on Cluster, or the pages of Cluster Centre and Cluster Info). Black with a thin outline when nothing shows in it.
 - **Bottom:** a fuel bar with its range at the left, the clock, and a hybrid battery bar with its charge and electric range at the right. Oil and outside temperature are in the free space on the right.
 - **Top:** the shift light, and under it, centred above the gear, the ONE OF ONE lettering (from the "lettering" setting). The lettering goes away while the middle window is open, so it never covers the Waze map.
