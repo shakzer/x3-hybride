@@ -52,7 +52,7 @@ A blue M card on the left and one big red rev blade on the right (0 to 7000 rpm,
 - **Left:** a blue card with M-coloured stripes, the gear on a dark plate and the speed under it. With "Show Waze map inside the theme" or Cluster Centre on, the card opens a window in the middle and the gear and speed move to its bottom edge.
 - **Right:** the revs as the red blade, then two thin slanted gauges: the **hybrid battery** (in the place the photo has an oil gauge) with the electric range under it, and the **fuel** with the range under it. The battery charge is also written at the bottom right, the clock at the bottom left.
 - **Oil and outside temperature:** in the free space on the right, under BMW's black gear box.
-- **Top:** the ONE OF ONE lettering (from the "lettering" setting, which stays when the Waze map shows) and the shift light, which sits where BMW's own does.
+- **Top:** the shift light, which sits where BMW's own does. There is no ONE OF ONE lettering in this theme: centred under the shift light it ran into the card and the blade.
 
 <p align="center"><img src="../../docs/images/cluster-mblade.png" width="900" alt="M Blade theme"></p>
 
@@ -63,7 +63,7 @@ A diagonal speed band on the left, a big rounded window in the middle for the ma
 - **Left:** the speed as a blue band running down to the lower right, with the speed scale along its edge and a purple band beside it. With the middle window closed, the gear and speed are big in the centre; with it open, they go small at the lower left.
 - **Middle:** the map window (Waze on Cluster, or the pages of Cluster Centre and Cluster Info). Black with a thin outline when nothing shows in it.
 - **Bottom:** a fuel bar with its range at the left, the clock, and a hybrid battery bar with its charge and electric range at the right. Oil and outside temperature are in the free space on the right.
-- **Top:** the ONE OF ONE lettering and the shift light, as in M Blade.
+- **Top:** the shift light, and under it, centred above the gear, the ONE OF ONE lettering (from the "lettering" setting). The lettering goes away while the middle window is open, so it never covers the Waze map.
 
 Neither theme has been tried on a car; they are checked on the bench against the screenshot and for BMW's black gear box, seat-belt light and the hood. The gear letters use the app's own font, not the boxed one of the screenshot.
 
@@ -124,7 +124,7 @@ More themes are on the way.
 ## Off and drive modes
 
 - **Off (BMW's own cluster):** pick it as the theme and the app draws nothing, so BMW's cluster comes back.
-- **Sport theme: lettering at the top** (the upright, light stacked ONE / OF / ONE, number 4b, by default): thirteen "ONE OF ONE" / "1/1 EDITION" lettering options for the top centre of the Sport theme, painted in the M theme's colours as a gradient. It is our own lettering, not a brand's logo; it is hidden while the Waze map shows inside the theme (M Blade and Navi keep it). The images are baked by `tools/bake_emblems.py`.
+- **Sport theme: lettering at the top** (the upright, light stacked ONE / OF / ONE, number 4b, by default): thirteen "ONE OF ONE" / "1/1 EDITION" lettering options for the top centre of the Sport theme, painted in the M theme's colours as a gradient. It is our own lettering, not a brand's logo; it is hidden while the Waze map shows inside the theme. Navi also has it, centred under its shift light; M Blade has none. The images are baked by `tools/bake_emblems.py`.
 - **Change with the drive mode** (on by default): the cluster follows the drive mode switch of a plug-in hybrid (X3 30e, no Comfort), with a theme for each of three slots: Electric Eco Pro (also Electric and Electric Individual), Hybrid (also Battery Control), and Sport Plus (also Sport, Sport Individual and Xtraboost). Out of the box, Sport Plus shows the M theme, Electric Eco Pro shows the Sport theme, and Hybrid leaves BMW's own cluster. Every theme also writes the real mode name small at the bottom right, as the car's own screen names it. Until the car reports a mode, the plain theme setting is used.
 - **M cars:** the Efficient, Sport and Sport+ modes of M cars are not recognised yet, so the theme doesn't change with them. The last line of the Settings tab shows the value your car sends; please post it in an issue so it can be added.
 - **With HUD Widgets:** on cluster-render 0.5.1 and newer, a cluster theme and a HUD layout show at the same time. On older cluster-render they share one screen slot and take turns: pick a theme while the HUD is on and the page asks whether to turn HUD Widgets off, and it asks the same the other way round.

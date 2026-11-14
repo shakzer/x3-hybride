@@ -1,7 +1,7 @@
 'use strict';
 // The two Cluster Themes layouts copied from the screenshot: "M Blade" (mblade) and "Navi" (navi). Checks that they are
 // listed in every theme setting, carry what the owner asked for (the hybrid battery where the photo has the oil gauge, the
-// oil temperature in the free space on the right, the ONE OF ONE emblem at the top that stays when the Waze window is up,
+// oil temperature in the free space on the right, the ONE OF ONE lettering (Navi only, centred under the shift light, gone while the Waze window is open),
 // the shift light where BMW's own sits), keep clear of BMW's black box, seat-belt light and the hood, and cut the map window
 // that Cluster Centre / Cluster Info read. Run: node tools/test_mblade_navi.js
 const assert = require('assert');
@@ -44,12 +44,13 @@ NAMES.forEach((n) => {
         assert(oil && icon, 'no oil readout');
         assert(oil.x >= 1600 && !overlap(oil, visible.BLACK_BOX) && !overlap(icon, visible.BLACK_BOX));
     });
-    check(n + ': ONE OF ONE emblem at the top, kept while the Waze window is up', () => {
+    check(n + ': ONE OF ONE lettering: only in Navi, centred right under the shift light, gone while the map window is open', () => {
         const e = by('emblem');
-        assert(e && e.type === 'emblem' && e.setting === 'emblem' && e.keepWithMap === true);
-        const hole = L.widgets.map((w) => w.hole).find(Boolean);
-        assert(e.y <= 40 && e.y + 96 <= hole[1], 'not at the top, or into the map window');
-        assert(visible.hoodY(e.x + 114) <= e.y + 6 && visible.hoodY(e.x + 246) <= e.y + 6, 'under the hood');
+        if (n === 'mblade') { assert(!e, 'M Blade has no room for it'); return; }
+        assert(e && e.type === 'emblem' && e.setting === 'emblem' && !e.keepWithMap, 'must be hidden while the window is open');
+        assert(Math.abs(e.x + e.w / 2 - 960) <= 2, 'not centred');
+        const s = ofType('shiftlight')[0];
+        assert(e.y >= s.y + s.h && e.y + 96 <= 215, 'not between the shift light and the gear');
     });
     check(n + ': shift light centred at the top, switched by stockShiftLight, above the map window', () => {
         const s = ofType('shiftlight')[0];

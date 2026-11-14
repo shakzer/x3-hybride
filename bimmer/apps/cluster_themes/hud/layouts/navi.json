@@ -85,10 +85,10 @@
       "id": "emblem",
       "type": "emblem",
       "setting": "emblem",
-      "keepWithMap": true,
+      "keepWithMap": false,
       "z": 5,
-      "x": 440,
-      "y": 22,
+      "x": 780,
+      "y": 100,
       "w": 360,
       "h": 96
     },

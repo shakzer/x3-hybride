@@ -104,17 +104,6 @@
       "toggle": "stockShiftLight"
     },
     {
-      "id": "emblem",
-      "type": "emblem",
-      "setting": "emblem",
-      "keepWithMap": true,
-      "z": 5,
-      "x": 410,
-      "y": 36,
-      "w": 360,
-      "h": 96
-    },
-    {
       "id": "gear",
       "type": "text",
       "z": 5,

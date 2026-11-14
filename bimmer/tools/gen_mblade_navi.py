@@ -34,9 +34,9 @@ def shiftlight(x, y):
             'red': 4500, 'flash': 5500, 'gap': 11, 'center': 72, 'toggle': 'stockShiftLight'}
 
 
-def emblem(x, y):
-    # the lettering sits above the map window, so it stays while the window is open
-    return {'id': 'emblem', 'type': 'emblem', 'setting': 'emblem', 'keepWithMap': True, 'z': 5, 'x': x, 'y': y, 'w': 360, 'h': 96}
+def emblem(x, y, keep):
+    # keep: it stays while the Waze map is up
+    return {'id': 'emblem', 'type': 'emblem', 'setting': 'emblem', 'keepWithMap': keep, 'z': 5, 'x': x, 'y': y, 'w': 360, 'h': 96}
 
 
 # ------------------------------------------------------------------------------------------------ M Blade
@@ -52,7 +52,7 @@ def mblade():
         'hole': [440, 168, 470, 290], 'holeWhen': 'mapUp', 'holeInset': 8, 'holeRadius': 22,
     })
     W.append(shiftlight(750, 32))          # where BMW's own shift light sits (x 750..1170), as on the M and Sport themes
-    W.append(emblem(410, 36))              # the lettering, left of it (the ink is 132 px wide, centred in the 360 px box)
+    # (no ONE OF ONE lettering here: centred under the shift light it runs into the card's corner and the blade's first line)
     # gear and speed on the plate; under the map window while it is open
     W.append(text('gear', 700, 285, 240, 117, '{{gear}}', 'm_gear', align='center', toggle='!mapUp'))
     W.append(text('speed', 700, 400, 240, 82, '{{speed}}', 'm_speed', align='center', toggle='!mapUp'))
@@ -118,7 +118,7 @@ def navi():
         'hole': [416, 120, 984, 488], 'holeWhen': 'mapUp', 'holeInset': 8, 'holeRadius': 34,
     })
     W.append(shiftlight(750, 34))          # where BMW's own shift light sits (x 750..1170)
-    W.append(emblem(440, 22))              # the lettering, left of it (ink 132 px wide, centred in the 360 px box: x 554..686)
+    W.append(emblem(780, 100, False))      # the lettering, centred right under the shift light, over the gear; hidden while the map window is open
     # speed scale labels (SPEED_SCALE 0..250 / 0..160 mph) along the band's lower-left side
     for i in range(8):
         y = 612 - 47 * i
