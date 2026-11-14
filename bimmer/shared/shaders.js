@@ -804,14 +804,15 @@ vec2 facets(vec2 q) {
 `;
 // The navy backdrop of the M Blade and Navi themes, the Sport view's over the whole panel: a dark blue with a soft glow round the
 // middle and the facets (mirrored on the right, fading out over the middle where the readouts are). Needs cov() and FACETS above it.
-// The result is multiplied by u_tint (the setting "sportTint", 0 = pure black).
-const NAVY = `vec3 navyFacets(vec2 p, vec2 size) {
+// amount 0..1 is the facets' strength (the setting "sportFacets"; 0 = the plain navy). The result is multiplied by u_tint (the setting
+// "sportTint", 0 = pure black).
+const NAVY = `vec3 navyFacets(vec2 p, vec2 size, float amount) {
     vec2 pm = vec2(size.x - p.x, p.y);
     float gx = (p.x - size.x * 0.5) / 440.0, gy = (p.y - 330.0) / 230.0;
     vec3 navy = mix(vec3(0.016, 0.05, 0.125), vec3(0.026, 0.08, 0.19), exp(-gx * gx - gy * gy));
     float side = clamp((abs(p.x - size.x * 0.5) - 60.0) / 200.0, 0.0, 1.0);
     vec2 fc = facets(p.x < size.x * 0.5 ? p : pm);
-    return (navy + (vec3(0.014, 0.045, 0.11) * fc.x + vec3(0.03, 0.08, 0.17) * fc.y * 0.55) * side) * slot(p);
+    return (navy + (vec3(0.014, 0.045, 0.11) * fc.x + vec3(0.03, 0.08, 0.17) * fc.y * 0.55) * side * amount) * slot(p);
 }
 `;
 const SDASH = `// The Sport theme in one cluster-render "effect" layer (GLSL ES 1.00), after BMW's Live Cockpit Sport view:
@@ -847,6 +848,7 @@ uniform vec4 u_hole;      // map window x, y, w, h, already inset (w 0 = none)
 uniform float u_holeR;    // the hole's corner radius px
 uniform vec4 u_strip;     // bottom strip: left end x, top y, height, slant px
 uniform float u_topEnd;   // the top lines run from the bracket to this x (left; mirrored on the right)
+uniform float u_facets;   // the facets' strength 0..1 (0 = plain navy)
 uniform float u_tint;     // 0..: the blue of the middle (1 = the car's own, from a photo of its Sport view); 0 = black
 
 const vec3 BLUE_LINE = vec3(0.36, 0.62, 1.0);
@@ -953,7 +955,7 @@ void main() {
         // two panels as on the photo: the facets fade out towards the middle, where the navy stays plain
         float side = clamp((abs(p.x - u_size.x * 0.5) - 60.0) / 200.0, 0.0, 1.0);
         vec2 fc = facets(p.x < u_size.x * 0.5 ? p : pm);
-        navy += (vec3(0.02, 0.07, 0.16) * fc.x + vec3(0.07, 0.2, 0.38) * fc.y * 0.6) * side;
+        navy += (vec3(0.02, 0.07, 0.16) * fc.x + vec3(0.07, 0.2, 0.38) * fc.y * 0.6) * side * u_facets;
         c.rgb = mix(c.rgb, navy * u_tint, il * ir * yIn);
         c.rgb *= slot(p);
     }
@@ -1027,6 +1029,7 @@ uniform vec3 u_red;
 uniform vec4 u_hole;      // map window x, y, w, h, already inset (w 0 = none)
 uniform float u_holeR;
 uniform float u_tint;     // the navy backdrop's strength 0..1.4 (0 = pure black)
+uniform float u_facets;   // the facets' strength 0..1 (0 = plain navy)
 
 float cov(float d) { return clamp(0.5 - d, 0.0, 1.0); }
 vec4 over(vec4 top, vec4 under) {
@@ -1056,7 +1059,7 @@ vec4 gauge(vec2 p, vec4 g, float v, vec3 fill, vec4 c) {
 void main() {
     vec2 p = v_uv * u_size;
     // the Sport view's navy with its facets (pure black with the tint at 0); BMW's own gauges stay hidden under it
-    vec4 c = vec4(u_tint > 0.0 ? navyFacets(p, u_size) * u_tint : vec3(0.0), 1.0);
+    vec4 c = vec4(u_tint > 0.0 ? navyFacets(p, u_size, u_facets) * u_tint : vec3(0.0), 1.0);
 
     // ---- the card: left edge, flat top, a point on the right, flat bottom; the corners rounded ----
     vec2 va = vec2(u_cardB.x, u_cardA.y), vv = u_cardB.yz, vb = vec2(u_cardB.w, u_cardA.z);
@@ -1175,6 +1178,7 @@ uniform vec4 u_barR;
 uniform vec4 u_hole;      // map window x, y, w, h, already inset (w 0 = none)
 uniform float u_holeR;
 uniform float u_tint;     // the navy backdrop's strength 0..1.4 (0 = pure black)
+uniform float u_facets;   // the facets' strength 0..1 (0 = plain navy)
 
 float cov(float d) { return clamp(0.5 - d, 0.0, 1.0); }
 ${FACETS}
@@ -1202,7 +1206,7 @@ vec4 bar(vec2 p, vec4 b, vec3 glowA, vec3 glowB, vec4 c) {
 
 void main() {
     vec2 p = v_uv * u_size;
-    vec4 c = vec4(u_tint > 0.0 ? navyFacets(p, u_size) * u_tint : vec3(0.0), 1.0);
+    vec4 c = vec4(u_tint > 0.0 ? navyFacets(p, u_size, u_facets) * u_tint : vec3(0.0), 1.0);
     // the map window: cut out of the backdrop, with a thin pale outline just outside it
     if (u_hole.z > 0.0) {
         vec2 hs = u_hole.zw * 0.5;

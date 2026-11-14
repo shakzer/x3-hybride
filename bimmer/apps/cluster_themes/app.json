@@ -745,6 +745,26 @@
       ]
     },
     {
+      "key": "sportPower",
+      "label": "Sport theme: energy flow (kW) in place of the boost",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "key": "sportFacets",
+      "label": "Backdrop facets (Sport, M Blade, Navi)",
+      "type": "number",
+      "unit": "%",
+      "default": 100,
+      "steps": [
+        0,
+        25,
+        50,
+        75,
+        100
+      ]
+    },
+    {
       "key": "stripClear",
       "label": "Leave BMW's bottom strip clear",
       "type": "bool",

@@ -629,7 +629,7 @@
       "font": "s_val",
       "color": "fg",
       "align": "right",
-      "toggle": "showBoost"
+      "toggle": "boostShown"
     },
     {
       "id": "boost_unit",
@@ -643,7 +643,35 @@
       "font": "s_unit",
       "color": "dim",
       "align": "left",
-      "toggle": "showBoost"
+      "toggle": "boostShown"
+    },
+    {
+      "id": "power",
+      "type": "text",
+      "z": 5,
+      "x": 680,
+      "y": 630,
+      "w": 160,
+      "h": 26,
+      "text": "{{powerKw}}",
+      "font": "s_val",
+      "color": "fg",
+      "align": "right",
+      "toggle": "power"
+    },
+    {
+      "id": "power_unit",
+      "type": "text",
+      "z": 5,
+      "x": 846,
+      "y": 630,
+      "w": 60,
+      "h": 29,
+      "text": "kW",
+      "font": "s_unit",
+      "color": "dim",
+      "align": "left",
+      "toggle": "power"
     },
     {
       "id": "therm",

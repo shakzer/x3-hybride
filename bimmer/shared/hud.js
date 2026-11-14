@@ -532,7 +532,11 @@ class HudApp {
         // its status says (sceneIdsOf), false while they share one (older versions, or a panel fallen back after the guard)
         this.scenesApart = null;
         // the hand-over with eroobeeroo's Cluster Info / Cluster Centre (cluster_info.js): the battery charge in, out and who asks for it
-        this.ci = new ClusterInfo({ id: ctx.spec && ctx.spec.id, name: ctx.spec && ctx.spec.title }, this.log);
+        this.ci = new ClusterInfo({ id: ctx.spec && ctx.spec.id, name: ctx.spec && ctx.spec.title, onChange: () => this._guard('power', () => this._powerChanged()) }, this.log);
+        // the energy flow (the battery's power in kW) another app shares (eDrive Live): the Sport theme shows it in place of the boost
+        // while it does (widgets with toggle "power", the boost's with "boostShown"), and the layout is rebuilt when it comes or goes
+        this.powerLayout = false;        // the active layout has such a widget
+        this.powerShown = '';            // whether the layout was built for the power shown or not
         // the "danger zone" alert (danger.js): a file another app writes while a zone is ahead; the layout is rebuilt when it comes
         // or goes (widgets with toggle "danger"), the distance and limit are the tokens {{dangerDist}} {{dangerUnit}} {{dangerLimit}}
         this.danger = new Danger({}, this.log, () => this._guard('danger', () => this._dangerChanged()));
@@ -677,6 +681,12 @@ class HudApp {
         if (key === 'danger' || key === 'dangerLimit' || key === 'dangerNoLimit') {
             const d = this.target === 'panel' && this.ctx.settings.get('dangerAlert') === true ? this.danger.state() : null;
             return !!d && d.on && (key === 'danger' || (d.limit !== null) === (key === 'dangerLimit'));
+        }
+        // "power": not saved, an app shares the battery's power (cluster_info.js) and the setting "sportPower" lets it replace the boost;
+        // "boostShown": the boost shows (the setting "showBoost", and no power flow in its place)
+        if (key === 'power' || key === 'boostShown') {
+            const flow = this.target === 'panel' && this.ctx.settings.item('sportPower') && this.ctx.settings.get('sportPower') !== false && this.ci.sharedPower() !== null;
+            return key === 'power' ? !!flow : !flow && this.ctx.settings.get('showBoost') !== false;
         }
         const s = this.ctx.settings.item(key);
         const v = this.ctx.settings.get(key);
@@ -875,6 +885,14 @@ class HudApp {
         this.ciTimer = setInterval(() => this._guard('cluster info', () => this._shareWithClusterInfo()), 500);
     }
 
+    /** The energy flow replaces the boost or not (see setting("power")), as a string to see when the layout has to be rebuilt. */
+    _powerKey() { return this.setting('power') ? '1' : '0'; }
+
+    /** Another app began or stopped sharing the battery's power: rebuild a layout that shows it in place of the boost. */
+    _powerChanged() {
+        if (this.powerLayout && this._powerKey() !== this.powerShown) this._rebuild(); else this._status();
+    }
+
     /** Which states of the danger alert the layout shows: "on / limit known" as one string, to see when it has to be rebuilt. */
     _dangerKey() { return ['danger', 'dangerLimit'].map((k) => (this.setting(k) ? 1 : 0)).join(''); }
 
@@ -896,6 +914,7 @@ class HudApp {
         const now = Date.now();
         const ownFresh = isNum(this.hvSoc) && now - this.hvSocAt < HV_STALE_MS;
         this.ci.publish(ownFresh && !this.car.data().demo ? this.hvSoc : null);
+        this.ci.wantPower(this.target === 'panel' && this.started && this.powerLayout && !!this.ctx.settings.item('sportPower') && this.ctx.settings.get('sportPower') !== false);
         const shows = this.target === 'panel' && this.started && !!this.activeName && this.activeName !== 'off' && !this.screen.yielded;
         // the centre window: open while Cluster Centre / Cluster Info ask for it (and for a few seconds after), if this
         // theme has one and the setting allows; the layout is rebuilt with the window cut or filled
@@ -1538,6 +1557,10 @@ class HudApp {
                 const kw = Math.max(0, d.torque) * rpm / 9549;
                 return String(Math.round(us ? kw * 1.341 : kw));
             }
+            case 'powerKw': {        // the battery's power in kW, - while charging (recuperation); -- when no app shares it
+                const p = this.ci.sharedPower();
+                return p ? String(Math.round(p.kw)) : '--';
+            }
             case 'dangerDist': return formatDistance(this.danger.state().distM, us).n;
             case 'dangerUnit': return formatDistance(this.danger.state().distM, us).unit;
             case 'dangerLimit': return formatLimit(this.danger.state().limit, us);
@@ -1681,6 +1704,7 @@ class HudApp {
         this.activeName = name;
         this.mapLayout = false;
         this.dangerLayout = false;
+        this.powerLayout = false;
         this.windowRect = null;
         this.mapShown = this.setting('mapUp');
         if (name === 'off') {
@@ -1700,6 +1724,8 @@ class HudApp {
         this.mapLayout = layout.widgets.some((w) => w.holeWhen === 'mapUp');
         this.dangerLayout = layout.widgets.some((w) => /^!?danger/.test(w.toggle || ''));
         this.dangerShown = this._dangerKey();
+        this.powerLayout = layout.widgets.some((w) => w.toggle === 'power' || w.toggle === 'boostShown');
+        this.powerShown = this._powerKey();
         this.windowRect = this._windowRectOf(layout);
         // (a layout without a window can't have it open for Cluster Centre; the map flag is re-read for this layout)
         if (this.windowOpen && !this.windowRect) this.windowOpen = false;
@@ -1904,6 +1930,7 @@ class HudApp {
             c.uniform(ref, 'u_strip', w.strip);
             c.uniform(ref, 'u_topEnd', [w.topEnd]);
             c.uniform(ref, 'u_tint', [this._tint()]);
+            c.uniform(ref, 'u_facets', [this._facets()]);
         } else if (w.type === 'mblade') {
             // the M Blade theme (shaders.js mblade): geometry in panel px from the layout, see the widget notes in the header
             const [redFrom, orange] = this._redMarks(w.rpmMax || 7000);
@@ -1931,6 +1958,7 @@ class HudApp {
             c.uniform(ref, 'u_hole', this._hole(w));
             c.uniform(ref, 'u_holeR', [this._holeRadius(w)]);
             c.uniform(ref, 'u_tint', [this._tint()]);
+            c.uniform(ref, 'u_facets', [this._facets()]);
         } else if (w.type === 'navi') {
             const B = w.band, L = w.line, L2 = w.line2;
             c.uniform(ref, 'u_size', [w.w, w.h]);
@@ -1946,6 +1974,7 @@ class HudApp {
             c.uniform(ref, 'u_hole', this._hole(w));
             c.uniform(ref, 'u_holeR', [this._holeRadius(w)]);
             c.uniform(ref, 'u_tint', [this._tint()]);
+            c.uniform(ref, 'u_facets', [this._facets()]);
         } else if (w.type === 'mdash') {
             const ty = w.tyres || [0, 0, 0], L = w.gaugeL || {}, R = w.gaugeR || {}, b = w.blade || {};
             const bars = Array.isArray(w.segbars) ? w.segbars.slice(0, 4) : [];
@@ -2203,6 +2232,8 @@ class HudApp {
     _holeRadius(w) { return isNum(w.holeRadius) ? w.holeRadius : 28; }
     /** The strength of the navy backdrop of the Sport, M Blade and Navi themes: the setting "sportTint" in % of the car's own blue (0 = pure black). */
     _tint() { return this.ctx.settings.item('sportTint') ? Math.max(0, this.setting('sportTint')) / 100 : 0; }
+    /** The strength of the facets on that backdrop: the setting "sportFacets" in % (100 = the full pattern, 0 = the plain navy). */
+    _facets() { return this.ctx.settings.item('sportFacets') ? Math.min(1, Math.max(0, this.setting('sportFacets') / 100)) : 1; }
 
     _tick() {
         const now = Date.now();

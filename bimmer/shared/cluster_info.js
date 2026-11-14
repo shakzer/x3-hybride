@@ -10,6 +10,9 @@
  *  - reads what they want (wanted*.json: Cluster Info writes wanted.json while its panel is up, Cluster Centre its
  *    own wanted-<app>.json): while one of them asks for "soc" (or the electric range) this app reads the battery
  *    unit even if its own layout doesn't show the charge, so the panel over the Waze map has it;
+ *  - takes the battery's power (kW) from another app that shares it (eDrive Live: power.kw, - charging) for the Sport theme's
+ *    energy flow in place of the boost, and asks it to by writing wanted-<app id>.json ({ t, power: true, values: [] }) while a
+ *    layout shows it, as Cluster Info does (wantPower()); this app never reads the battery's power from the car itself;
  *  - takes the charge from another app that shares it (eDrive Live reads the battery unit itself, a second reader
  *    is avoided: "leave the battery unit to it"): the first other provider's values.soc.pct, while fresh;
  *  - says when a cluster theme shows (/dev/shm/cluster-themes/themes.json, { at, window, open }, written once a
@@ -50,6 +53,10 @@ class ClusterInfo {
         this.themeKey = '';
         this.windowAsk = false;     // an app asks for the centre window now
         this.now = opts.now || Date.now;
+        this.onChange = typeof opts.onChange === 'function' ? opts.onChange : null;   // the battery's power is shared / gone
+        this.powerOn = false;
+        this.wantedAt = 0;
+        this.wantedHas = false;
     }
 
     start() {
@@ -60,6 +67,7 @@ class ClusterInfo {
     stop() {
         clearInterval(this.timer);
         this.release();
+        this.wantPower(false);
     }
 
     _warn(what, e) {
@@ -93,6 +101,45 @@ class ClusterInfo {
             } else if (n !== this.id + '.json') others[n.replace(/\.json$/, '')] = j;
         });
         this.others = others; this.want = want;
+        const on = this.sharedPower() !== null;
+        if (on !== this.powerOn) {
+            this.powerOn = on;
+            if (this.onChange) { try { this.onChange(); } catch (e) { this._warn('onChange', e); } }
+        }
+    }
+
+    /** The battery's power that another app shares (eDrive Live), { kw, old }: kw in kW, negative while charging
+     * (recuperation), old true while the app holds its last read; or null. The first provider that has one. */
+    sharedPower() {
+        for (const id of Object.keys(this.others).sort()) {
+            const p = this.others[id].power;
+            if (p && typeof p.kw === 'number' && isFinite(p.kw) && Math.abs(p.kw) < 1000) return { kw: p.kw, old: p.old === true };
+        }
+        return null;
+    }
+
+    /**
+     * Ask the apps that read the battery (eDrive Live) to share its power while a layout shows it: this app's own
+     * wanted-<id>.json, { t, power: true, values: [] }, at most once a second; on false the file goes. (Never wanted.json,
+     * which is Cluster Info's.)
+     */
+    wantPower(on) {
+        const f = path.join(this.dir, 'wanted-' + this.id + '.json');
+        if (!on) {
+            if (!this.wantedHas) return;
+            this.wantedHas = false;
+            try { fs.unlinkSync(f); } catch (e) { /* gone */ }
+            return;
+        }
+        const t = this.now();
+        if (t - this.wantedAt < 1000 || !this._ensure(this.dir)) return;
+        this.wantedAt = t;
+        const tmp = f + '.tmp';
+        try {
+            fs.writeFileSync(tmp, JSON.stringify({ t, app: this.name, power: true, values: [] }), { mode: 0o644 });
+            fs.renameSync(tmp, f);
+            this.wantedHas = true;
+        } catch (e) { this._warn('wanted', e); }
     }
 
     /** Whether an app asks for the centre window: a fresh window-<app>.json in the themes folder (not our own). */
