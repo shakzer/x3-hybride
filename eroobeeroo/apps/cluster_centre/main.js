@@ -62,6 +62,7 @@ const FIND = [
     { name: 'buttons', match: /taste|button|mfl|multifunction|lenkrad|lenkstock|steeringwheel|stalk|keypad|wheelkey/i, max: 14 },
     { name: 'doors, check control', match: /door|tuer|t\u00fcr|trunk|tailgate|heckklappe|bonnet|motorhaube|checkcontrol|cclist|ccmessage|seatbelt|gurt/i, iface: /checkcontrol|kombiinterface/i, max: 14 },
     { name: 'speed limit', match: /speedlimit|speed.?limit|tempolimit|geschwindigkeitsbegrenzung|verkehrszeichen|roadsign|trafficsign|\bsli\b/i, max: 14 },
+    { name: 'navigation', match: /navigation|routeguidance|guidance|destination|remainingdistance|remainingtime|arrival|\beta\b|carplay|maneuver|manoeuvre/i, max: 14 },
     { name: 'media', match: /media|titel|title|artist|interpret|album|trackname|currenttrack|nowplaying/i, max: 14 },
 ];
 
@@ -230,7 +231,7 @@ mgu.run({
             const t = ctx.theme();
             const cv = ctx.canvas(W, H).clear(t.bg);
             if (sigPage > 0) {
-                cv.text('Signals on this car: steering, engine starts, trip computer, buttons, doors, speed limit, media (' + sigList.length + ')   ·   page ' + sigPage + ' of ' + Math.ceil(sigList.length / 7), 48, 60, 26, t.text, { font: 'bold', literal: true });
+                cv.text('Signals on this car: steering, engine starts, trip computer, buttons, doors, speed limit, navigation, media (' + sigList.length + ')   ·   page ' + sigPage + ' of ' + Math.ceil(sigList.length / 7), 48, 60, 26, t.text, { font: 'bold', literal: true });
                 if (found[0].error) cv.text(found[0].error, 48, 110, 20, t.dim, { font: 'label', literal: true });
                 sigList.slice((sigPage - 1) * 7, sigPage * 7).forEach((s, i) => {
                     const y = 116 + i * 54;
