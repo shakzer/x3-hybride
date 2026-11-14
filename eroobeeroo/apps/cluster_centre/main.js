@@ -57,6 +57,10 @@ const PAGE_IDS = ['temps', 'fuel', 'warmup', 'cooldown', 'edrive', 'engine', 'st
 const FIND = [
     { name: 'steering and yaw', match: /lenkwinkel|steer|yaw|gier|drehrate/i },
     { name: 'why the engine started', match: /startgrund|startreason|enginestart|combustion|verbrennungsmotor|engineon|motorstart|startrequest/i },
+    // x3-hybride: what the stock cluster's own views (trip, consumption, media, tyres) and the wheel's and stalk's buttons would give
+    { name: 'trip computer, cluster views', match: /bordcomputer|tripdata|travel|verbrauch|consumption|durchschnitt|average|reset/i, iface: /kombi|bordcomputer|resetlogic/i, max: 28 },
+    { name: 'buttons', match: /taste|button|mfl|multifunction|lenkrad|lenkstock|steeringwheel|stalk|keypad|wheelkey/i, max: 14 },
+    { name: 'media', match: /media|titel|title|artist|interpret|album|trackname|currenttrack|nowplaying/i, max: 14 },
 ];
 
 mgu.run({
@@ -204,7 +208,7 @@ mgu.run({
         });
 
         /* ---------- signals the car has for steering, yaw and why the engine started ---------- */
-        const found = FIND.map((f) => Object.assign({ name: f.name }, findSignals({ match: f.match })));
+        const found = FIND.map((f) => Object.assign({ name: f.name }, findSignals({ match: f.match, iface: f.iface, max: f.max })));
         found.forEach((f) => { if (f.error) log.warn('signals: ' + f.error); else { log.info('signals for ' + f.name + ': ' + f.list.length); f.list.slice(0, 40).forEach((s) => log.info('  ' + s.iface + ' ' + s.field + ' {' + s.members.slice(0, 10).join(', ') + '}')); } });
         const sigList = [].concat(...found.map((f) => f.list.map((s) => Object.assign({ what: f.name }, s))));
         let sigPage = 0;
@@ -224,7 +228,7 @@ mgu.run({
             const t = ctx.theme();
             const cv = ctx.canvas(W, H).clear(t.bg);
             if (sigPage > 0) {
-                cv.text('Signals on this car for steering, yaw and engine starts (' + sigList.length + ')   ·   page ' + sigPage, 48, 60, 26, t.text, { font: 'bold', literal: true });
+                cv.text('Signals on this car: steering, engine starts, trip computer, buttons, media (' + sigList.length + ')   ·   page ' + sigPage + ' of ' + Math.ceil(sigList.length / 7), 48, 60, 26, t.text, { font: 'bold', literal: true });
                 if (found[0].error) cv.text(found[0].error, 48, 110, 20, t.dim, { font: 'label', literal: true });
                 sigList.slice((sigPage - 1) * 7, sigPage * 7).forEach((s, i) => {
                     const y = 116 + i * 54;

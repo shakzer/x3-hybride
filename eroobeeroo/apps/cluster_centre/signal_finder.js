@@ -29,24 +29,27 @@ function members(db, ref, depth) {
 
 /**
  * The candidates: [{ iface, field, get, notify, members: [names] }], those whose own name matches first.
- * opts.path: another catalog (tests); opts.match: another pattern. Returns { list, error }.
+ * opts.path: another catalog (tests); opts.match: another pattern; opts.iface (x3-hybride): every field of the interfaces
+ * whose name matches too (the cluster's KombiIF, to see what views and trip data it has); opts.max: at most that many.
+ * Returns { list, error }.
  */
 function findSignals(opts) {
     let db;
     try { db = JSON.parse(fs.readFileSync((opts && opts.path) || CATALOG, 'utf8')); } catch (e) { return { list: [], error: 'catalog not readable: ' + e.message }; }
-    const list = [], re = (opts && opts.match) || MATCH;
+    const list = [], re = (opts && opts.match) || MATCH, ire = opts && opts.iface;
     Object.keys(db.interfaces || {}).forEach((iface) => {
         if (!/^de\.bmw\./.test(iface)) return;
         const fields = db.interfaces[iface].fields || {};
         Object.keys(fields).forEach((name) => {
             const f = fields[name], mem = members(db, f.dataRef, 0);
             const own = re.test(name), inMembers = mem.filter((m) => re.test(m));
-            if (!own && !inMembers.length) return;
-            list.push({ iface, field: name, get: !!(f.getter && f.getter.id), notify: !!f.notifier, members: own ? mem : inMembers, own });
+            const byIface = !!ire && ire.test(iface);
+            if (!own && !inMembers.length && !byIface) return;
+            list.push({ iface, field: name, get: !!(f.getter && f.getter.id), notify: !!f.notifier, members: own || byIface ? mem : inMembers, own: own || byIface });
         });
     });
     list.sort((a, b) => (b.own - a.own) || (/range/i.test(b.field + b.members.join()) - /range/i.test(a.field + a.members.join())) || (a.iface + a.field).localeCompare(b.iface + b.field));
-    return { list, error: null };
+    return { list: opts && opts.max ? list.slice(0, opts.max) : list, error: null };
 }
 
 module.exports = { findSignals, CATALOG, MATCH };

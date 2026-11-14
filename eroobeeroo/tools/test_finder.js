@@ -35,3 +35,17 @@ assert(r.list[0].get && r.list[0].notify && r.list[0].members.indexOf('remaining
 assert.deepStrictEqual(r.list[1].members, ['qualifier', 'fuelLevel']);   // its own name matches: all its members
 assert(findSignals({ path: f + '.none' }).error);
 console.log('ok   ranges, fuel and charge found, others left out; a missing catalog says so');
+
+// x3-hybride: a whole interface by name (the cluster's), capped; its fields come after the ones whose own name matches
+cat.interfaces['de.bmw.infotainment.KombiIF'] = { serviceId: 9, fields: {
+    statusBordcomputerTravelData: { dataRef: 'SpeedStruct', getter: { id: 1 }, notifier: { id: 2 } },
+    statusSomethingElse: { dataRef: 'Base', notifier: { id: 3 } },
+    statusMore: { dataRef: 'Base', notifier: { id: 4 } },
+} };
+fs.writeFileSync(f, JSON.stringify(cat));
+const k = findSignals({ path: f, match: /bordcomputer/i, iface: /kombi/i });
+assert.deepStrictEqual(k.list.map((s) => s.field), ['statusBordcomputerTravelData', 'statusMore', 'statusSomethingElse']);
+assert.deepStrictEqual(k.list[1].members, ['qualifier'], 'every field of the interface, with its members');
+assert.strictEqual(findSignals({ path: f, match: /bordcomputer/i, iface: /kombi/i, max: 2 }).list.length, 2);
+assert.strictEqual(findSignals({ path: f, match: /bordcomputer/i }).list.length, 1, 'without iface: the name match only');
+console.log('ok   a whole interface by name, capped');

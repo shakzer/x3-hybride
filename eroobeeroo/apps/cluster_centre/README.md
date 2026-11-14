@@ -94,6 +94,11 @@ the steering and yaw scaling is the CAN signals' (`config.scaling`, to confirm o
 show on Cluster Layouts' Signals page. **Signals** here still lists every steering, yaw and engine-start
 signal in the car's own catalog (`/etc/oap/someip/someip-interfaces.json`).
 
+x3-hybride: **Signals** also lists, from the same catalog, what the stock cluster's own views would need: the cluster's
+`KombiIF` fields and the trip computer's (`statusBordcomputerTravelData`, `statusBordcomputerAverage` are known to other apps),
+anything named like a steering-wheel or stalk button, and anything like a media title, each with its member names. Nothing
+is declared or read yet: the names to declare come from a photo of those pages.
+
 **Needs Cluster renderer 0.4.2 or later**, the Store's own (64 layers an app; a page is up to 51 pieces). While Cluster
 Layouts shows a layout over the whole panel, Cluster Centre waits (its page would be hidden under it), and its
 screen says so.
