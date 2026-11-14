@@ -27,6 +27,7 @@
     "badges.js",
     "screen.js",
     "cluster_info.js",
+    "danger.js",
     "free_rect.js",
     "runs.js",
     "tz.js",

@@ -724,6 +724,157 @@
       "conn": 1
     },
     {
+      "id": "al_card",
+      "type": "box",
+      "z": 4,
+      "x": 1196,
+      "y": 38,
+      "w": 272,
+      "h": 76,
+      "fill": [
+        10,
+        10,
+        14,
+        255
+      ],
+      "line": [
+        255,
+        64,
+        56,
+        255
+      ],
+      "border": 3,
+      "radius": 20,
+      "toggle": "dangerLimit",
+      "conn": 1
+    },
+    {
+      "id": "al_card2",
+      "type": "box",
+      "z": 4,
+      "x": 1196,
+      "y": 38,
+      "w": 210,
+      "h": 76,
+      "fill": [
+        10,
+        10,
+        14,
+        255
+      ],
+      "line": [
+        255,
+        64,
+        56,
+        255
+      ],
+      "border": 3,
+      "radius": 20,
+      "toggle": "dangerNoLimit",
+      "conn": 1
+    },
+    {
+      "id": "al_cam",
+      "type": "icon",
+      "icon": "cam",
+      "z": 5,
+      "x": 1210,
+      "y": 52,
+      "w": 48,
+      "h": 48,
+      "color": [
+        255,
+        64,
+        56,
+        255
+      ],
+      "conn": 1,
+      "toggle": "danger"
+    },
+    {
+      "id": "al_title",
+      "type": "text",
+      "z": 5,
+      "x": 1268,
+      "y": 49,
+      "w": 130,
+      "h": 19,
+      "text": "DANGER",
+      "font": "m_label",
+      "color": [
+        255,
+        64,
+        56,
+        255
+      ],
+      "align": "left",
+      "conn": 1,
+      "toggle": "danger"
+    },
+    {
+      "id": "al_dist",
+      "type": "text",
+      "z": 5,
+      "x": 1268,
+      "y": 74,
+      "w": 78,
+      "h": 29,
+      "text": "{{dangerDist}}",
+      "font": "m_mid",
+      "color": "fg",
+      "align": "right",
+      "conn": 1,
+      "toggle": "danger"
+    },
+    {
+      "id": "al_unit",
+      "type": "text",
+      "z": 5,
+      "x": 1350,
+      "y": 73,
+      "w": 42,
+      "h": 36,
+      "text": "{{dangerUnit}}",
+      "font": "m_unit",
+      "color": "dim",
+      "align": "left",
+      "conn": 1,
+      "toggle": "danger"
+    },
+    {
+      "id": "al_ring",
+      "type": "icon",
+      "icon": "ring",
+      "z": 5,
+      "x": 1392,
+      "y": 44,
+      "w": 64,
+      "h": 64,
+      "color": [
+        255,
+        64,
+        56,
+        255
+      ],
+      "conn": 1,
+      "toggle": "dangerLimit"
+    },
+    {
+      "id": "al_limit",
+      "type": "text",
+      "z": 5,
+      "x": 1392,
+      "y": 62,
+      "w": 64,
+      "h": 29,
+      "text": "{{dangerLimit}}",
+      "font": "m_tiny",
+      "color": "fg",
+      "align": "center",
+      "conn": 1,
+      "toggle": "dangerLimit"
+    },
+    {
       "id": "drive_mode",
       "type": "text",
       "z": 5,

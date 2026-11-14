@@ -43,6 +43,10 @@ const ICONS = {
         return d;
     },
     battery: (x, y) => Math.min(Math.abs(rect(x, y, 0.5, 0.57, 0.27, 0.33)) - 0.04, rect(x, y, 0.5, 0.13, 0.1, 0.05), seg(x, y, 0.57, 0.3, 0.42, 0.58) - 0.035, seg(x, y, 0.42, 0.58, 0.58, 0.58) - 0.035, seg(x, y, 0.58, 0.58, 0.43, 0.84) - 0.035),
+    // a speed camera on its pole (Cluster Themes' "danger zone" alert): the box with its lens, the pole and its foot
+    cam: (x, y) => Math.min(Math.abs(rect(x, y, 0.44, 0.36, 0.34, 0.2)) - 0.045, ring(x, y, 0.34, 0.36, 0.1) - 0.04, disc(x, y, 0.34, 0.36, 0.04), seg(x, y, 0.7, 0.3, 0.74, 0.3) - 0.03, seg(x, y, 0.5, 0.56, 0.5, 0.92) - 0.055, seg(x, y, 0.3, 0.93, 0.7, 0.93) - 0.045),
+    // the round outline of a speed-limit sign (the number sits inside it as text)
+    ring: (x, y) => ring(x, y, 0.5, 0.5, 0.435) - 0.065,
     oilcan: (x, y) => Math.min(seg(x, y, 0.2, 0.62, 0.6, 0.62) - 0.12, seg(x, y, 0.6, 0.58, 0.9, 0.44) - 0.04, disc(x, y, 0.92, 0.66, 0.05), seg(x, y, 0.3, 0.46, 0.3, 0.34) - 0.035, seg(x, y, 0.22, 0.34, 0.38, 0.34) - 0.04),
 };
 

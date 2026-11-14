@@ -79,6 +79,27 @@ NAMES.forEach((n) => {
             assert(visible.hoodY(a) <= w.y + 2 && visible.hoodY(b) <= w.y + 2, w.id + ' under the hood');
         });
     });
+    check(n + ': the danger zone alert card: under the hood, clear of BMW\'s zones, of the map window and of every readout', () => {
+        const cards = ['al_card', 'al_card2'].map(by);
+        assert(cards.every(Boolean), 'no alert card');
+        const h = L.widgets.find((w) => w.hole), i = h.holeInset || 6;
+        const win = { x: h.hole[0] + i, y: h.hole[1] + i, w: h.hole[2] - 2 * i, h: h.hole[3] - 2 * i };
+        cards.forEach((c) => {
+            assert(c.x >= 0 && c.y >= 0 && c.x + c.w <= 1920 && c.y + c.h <= 720, c.id + ' off the panel');
+            assert(!overlap(c, visible.BLACK_BOX) && !overlap(c, visible.BELT), c.id + ' in the black box or belt light');
+            assert(c.y >= visible.CAMERA[3] || c.x >= visible.CAMERA[2] || c.x + c.w <= visible.CAMERA[0], c.id + ' in the camera\'s box');
+            assert(visible.hoodY(c.x) <= c.y + 2 && visible.hoodY(c.x + c.w) <= c.y + 2, c.id + ' under the hood');
+            assert(!overlap(c, [win.x, win.y, win.x + win.w, win.y + win.h]), c.id + ' over the map window');
+            L.widgets.filter((w) => /^(text|icon|emblem|badge|atext)$/.test(w.type) && w.id.indexOf('al_') !== 0).forEach((w) => {
+                const a = w.type === 'emblem' ? w.x + 114 : w.x, b = w.type === 'emblem' ? w.x + 246 : w.x + w.w;
+                assert(!(a < c.x + c.w && b > c.x && w.y < c.y + c.h && w.y + w.h > c.y), c.id + ' covers ' + w.id);
+            });
+        });
+        // everything of the alert sits inside the wide card
+        L.widgets.filter((w) => w.id.indexOf('al_') === 0 && w.type !== 'box').forEach((w) => {
+            assert(w.x >= cards[0].x && w.y >= cards[0].y && w.x + w.w <= cards[0].x + cards[0].w && w.y + w.h <= cards[0].y + cards[0].h, w.id + ' outside the card');
+        });
+    });
 });
 console.log(bad ? bad + ' FAILED' : 'mblade / navi: all checks pass');
 process.exit(bad ? 1 : 0);

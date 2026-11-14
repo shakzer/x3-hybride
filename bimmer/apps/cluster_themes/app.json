@@ -27,6 +27,7 @@
     "badges.js",
     "screen.js",
     "cluster_info.js",
+    "danger.js",
     "free_rect.js",
     "runs.js",
     "tz.js",
@@ -379,6 +380,12 @@
       "label": "Centre window for Cluster Centre / Cluster Info",
       "type": "bool",
       "default": true
+    },
+    {
+      "key": "dangerAlert",
+      "label": "Danger zone alert (M Blade and Navi)",
+      "type": "bool",
+      "default": false
     },
     {
       "key": "units",

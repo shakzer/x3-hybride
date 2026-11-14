@@ -40,6 +40,29 @@ def emblem(x, y, keep):
     return {'id': 'emblem', 'type': 'emblem', 'setting': 'emblem', 'keepWithMap': keep, 'z': 5, 'x': x, 'y': y, 'w': 360, 'h': 96}
 
 
+RED = [255, 64, 56, 255]
+
+
+def danger_alert(x, y, h):
+    """The danger zone alert (shared/danger.js), in Waze's style: a dark rounded card with a red outline, a camera, DANGER,
+    the distance and, when the source gives it, the speed limit in a red ring. Shown only while a zone is ahead (toggle
+    "danger"; "dangerLimit" / "dangerNoLimit" pick the card with or without the limit sign). Drawn clear of the map window and
+    of BMW's zones, where the theme has room: the caller picks x, y and the height (the card is 272 wide, 210 without the limit)."""
+    top = round((h - 54) / 2.0)
+    W = []
+    for id, w, tog in (('al_card', 272, 'dangerLimit'), ('al_card2', 210, 'dangerNoLimit')):
+        W.append({'id': id, 'type': 'box', 'z': 4, 'x': x, 'y': y, 'w': w, 'h': h, 'fill': [10, 10, 14, 255], 'line': RED,
+                  'border': 3, 'radius': 20, 'toggle': tog, 'conn': 1})
+    k = {'toggle': 'danger'}
+    W.append(icon('al_cam', 'cam', x + 14, y + round((h - 48) / 2.0), 48, 48, RED, 1, **k))
+    W.append(text('al_title', x + 72, y + top, 130, 19, 'DANGER', 'm_label', RED, 'left', 1, **k))
+    W.append(text('al_dist', x + 72, y + top + 25, 78, 29, '{{dangerDist}}', 'm_mid', 'fg', 'right', 1, **k))
+    W.append(text('al_unit', x + 154, y + top + 24, 42, 36, '{{dangerUnit}}', 'm_unit', 'dim', 'left', 1, **k))
+    W.append(icon('al_ring', 'ring', x + 196, y + round((h - 64) / 2.0), 64, 64, RED, 1, toggle='dangerLimit'))
+    W.append(text('al_limit', x + 196, y + round((h - 29) / 2.0), 64, 29, '{{dangerLimit}}', 'm_tiny', 'fg', 'center', 1, toggle='dangerLimit'))
+    return W
+
+
 # ------------------------------------------------------------------------------------------------ M Blade
 # Waze's map is drawn at a fixed place: the centred 1088x480 of the panel (x 416..1504, y 120..600, its middle at x 960).
 # BMW draws a black box over x 1406..1597, y 342..419, so a window can show the map up to about x 1396. With the map up
@@ -121,6 +144,7 @@ def mblade():
     W.append(icon('batt_icon', 'battery', 1360, 671, 26, 34, 'dim', 1))
     W.append(text('ev_pct', 1392, 672, 76, 34, '{{hvSoc}}', 'm_mid', 'fg', 'right', 1))
     W.append(text('ev_pct_unit', 1472, 678, 30, 29, '%', 'm_tiny', 'dim', conn=1))
+    W += danger_alert(1612, 338, 80)       # under the card on the right (clear of BMW's black box, x < 1597), above the gauge tips (y 427)
     W.append(text('drive_mode', 1664, 698, 216, 22, '{{modeName}}', 'mode', 'dim', 'right', 1))
     return {
         'schemaVersion': 2, 'name': 'M Blade', 'theme': 'mblade',
@@ -188,6 +212,7 @@ def navi():
     W.append(icon('out_icon', 'therm', 1650, 506, 29, 34, 'dim', 1))
     W.append(text('outside', 1684, 507, 96, 34, '{{ambient}}', 'm_mid', 'fg', 'right', 1))
     W.append(text('outside_unit', 1786, 513, 44, 29, '{{u:temp}}', 'm_tiny', 'dim', conn=1))
+    W += danger_alert(1196, 38, 76)         # in the top strip right of the shift light: clear of the map window (y 120) and of the hood
     W.append(text('drive_mode', 1664, 698, 216, 22, '{{modeName}}', 'mode', 'dim', 'right', 1))
     return {
         'schemaVersion': 2, 'name': 'Navi', 'theme': 'navi',

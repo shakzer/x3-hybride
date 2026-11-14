@@ -235,6 +235,7 @@ const Car = require('./kit/car');
 const Waze = require('./waze');
 const Screen = require('./screen');
 const { ClusterInfo } = require('./cluster_info');
+const { Danger, formatDistance, formatLimit } = require('./danger');
 const { freeRect } = require('./free_rect');
 const { shiftLightState } = require('./shift_light');
 const badges = require('./badges');
@@ -532,6 +533,11 @@ class HudApp {
         this.scenesApart = null;
         // the hand-over with eroobeeroo's Cluster Info / Cluster Centre (cluster_info.js): the battery charge in, out and who asks for it
         this.ci = new ClusterInfo({ id: ctx.spec && ctx.spec.id, name: ctx.spec && ctx.spec.title }, this.log);
+        // the "danger zone" alert (danger.js): a file another app writes while a zone is ahead; the layout is rebuilt when it comes
+        // or goes (widgets with toggle "danger"), the distance and limit are the tokens {{dangerDist}} {{dangerUnit}} {{dangerLimit}}
+        this.danger = new Danger({}, this.log, () => this._guard('danger', () => this._dangerChanged()));
+        this.dangerLayout = false;       // the active layout has an alert widget (toggle "danger" / "dangerLimit" / "dangerNoLimit")
+        this.dangerShown = '';           // which of the alert's states the layout was built for
         this.claimBy = null;             // the id of another kit app holding the HUD now (hud_claim), we step aside
         this.testAt = null;              // the shift-light test's start (Date.now()), while it runs
         this.nightOn = false;            // the layout was built with the night colours (nightDim)
@@ -667,6 +673,11 @@ class HudApp {
         // "mapUp": not saved, the centre window is open now: the Waze map shows inside the theme (the setting on, waze.js
         // says so), or Cluster Centre / Cluster Info asked for the window (centreWindow)
         if (key === 'mapUp') return !!((this.waze && this.waze.up && this.ctx.settings.get('mapInTheme') === true) || this.windowOpen === true);
+        // "danger": not saved, a danger zone is ahead (danger.js) and the alert is turned on; "dangerLimit" / "dangerNoLimit": and its speed limit is / isn't known
+        if (key === 'danger' || key === 'dangerLimit' || key === 'dangerNoLimit') {
+            const d = this.target === 'panel' && this.ctx.settings.get('dangerAlert') === true ? this.danger.state() : null;
+            return !!d && d.on && (key === 'danger' || (d.limit !== null) === (key === 'dangerLimit'));
+        }
         const s = this.ctx.settings.item(key);
         const v = this.ctx.settings.get(key);
         if (!s) return v;
@@ -860,7 +871,16 @@ class HudApp {
         if (this.waze) { this.waze.start(); this._wazeWant(); }
         this.screen.start();
         this.ci.start();
+        if (this.target === 'panel') this.danger.start();
         this.ciTimer = setInterval(() => this._guard('cluster info', () => this._shareWithClusterInfo()), 500);
+    }
+
+    /** Which states of the danger alert the layout shows: "on / limit known" as one string, to see when it has to be rebuilt. */
+    _dangerKey() { return ['danger', 'dangerLimit'].map((k) => (this.setting(k) ? 1 : 0)).join(''); }
+
+    /** The alert came or went, or its limit became known or unknown (danger.js): rebuild a layout that draws it. */
+    _dangerChanged() {
+        if (this.dangerLayout && this._dangerKey() !== this.dangerShown) this._rebuild(); else this._status();
     }
 
     /** Waze's map on the panel only while the setting is on and the theme shown has a map window. */
@@ -985,6 +1005,7 @@ class HudApp {
         clearInterval(this.statusTimer);
         clearInterval(this.dmeTimer);
         clearInterval(this.ciTimer);
+        this.danger.stop();
         try { this.ci.markTheme(false); this.ci.markLayout(false); this.ci.stop(); } catch (e) { /* exiting anyway */ }
         clearInterval(this.claimTimer);
         clearTimeout(this.statusAskT);
@@ -1517,6 +1538,9 @@ class HudApp {
                 const kw = Math.max(0, d.torque) * rpm / 9549;
                 return String(Math.round(us ? kw * 1.341 : kw));
             }
+            case 'dangerDist': return formatDistance(this.danger.state().distM, us).n;
+            case 'dangerUnit': return formatDistance(this.danger.state().distM, us).unit;
+            case 'dangerLimit': return formatLimit(this.danger.state().limit, us);
             case 'hvSoc': { const v = this._raw('hvSoc'); return isNum(v) ? String(Math.round(v)) : '--'; }
             case 'evRange': { const v = this._raw('evRange'); return isNum(v) ? String(Math.round(us ? v * 0.621371 : v)) : '--'; }
             case 'fuelPct': { const v = this._raw('fuel'); return isNum(v) ? String(Math.round(v * 100)) : '--'; }
@@ -1656,6 +1680,7 @@ class HudApp {
         const name = this._layoutName();
         this.activeName = name;
         this.mapLayout = false;
+        this.dangerLayout = false;
         this.windowRect = null;
         this.mapShown = this.setting('mapUp');
         if (name === 'off') {
@@ -1673,6 +1698,8 @@ class HudApp {
         }
         this.problem = null;
         this.mapLayout = layout.widgets.some((w) => w.holeWhen === 'mapUp');
+        this.dangerLayout = layout.widgets.some((w) => /^!?danger/.test(w.toggle || ''));
+        this.dangerShown = this._dangerKey();
         this.windowRect = this._windowRectOf(layout);
         // (a layout without a window can't have it open for Cluster Centre; the map flag is re-read for this layout)
         if (this.windowOpen && !this.windowRect) this.windowOpen = false;

@@ -67,6 +67,8 @@ A diagonal speed band on the left, a big rounded window in the middle for the ma
 
 Neither theme has been tried on a car; they are checked on the bench against the screenshot and for BMW's black gear box, seat-belt light and the hood. The gear letters use the app's own font, not the boxed one of the screenshot.
 
+**Danger zone alert (M Blade and Navi, off by default).** Both can draw a Waze-style card while a danger zone is ahead: a camera, DANGER, the distance and, when it is known, the speed limit in a red ring. On M Blade it sits under the card on the right, on Navi in the top strip beside the shift light; both stay clear of the map window, so the map is never covered. **This app cannot find a zone by itself.** It has no position and no map data (CarPlay gives the car the picture of Waze's map and nothing else), so it only shows what another app tells it, through a file: `/dev/shm/cluster-themes/danger-<app>.json` with `{ "t": <ms since 1970, now>, "app": "<name>", "distance": <metres>, "limit": <km/h, optional> }`, rewritten about once a second (the card goes three seconds after the file stops; the nearest zone wins when several apps write). Nothing writes that file yet, so with the setting on the card stays hidden. The wording is "danger zone" on purpose: in France only zones may be announced, not the exact place or the kind of a speed camera (décret n° 2012-3); this is not legal advice. Checked on the bench with a fake source, not on a car.
+
 <p align="center"><img src="../../docs/images/cluster-navi.png" width="900" alt="Navi theme"></p>
 
 ### Minimal
@@ -134,6 +136,7 @@ More themes are on the way.
 - **Theme**, and one per drive mode.
 - **Readouts:** pick which car sensor each GT3, Roadster, Track, Drag, Rally, Retro 80s or Dyno readout shows (speed, rpm, boost, temperatures, tyres, fuel, g, power and more). Plug-in hybrids can also show **Hybrid battery**, the high-voltage battery's charge in % (not yet checked on a hybrid). They can also show **Electric range**: that charge times the **Electric range when full** setting (40 km by default; an X3 xDrive30e is rated 42 to 50 km). It is an estimate, not BMW's own figure.
 - **Show Waze map inside the theme:** GT3, Sport, M, M Blade and Navi open a window in the middle and Waze on Cluster draws its map in it, above BMW's own map view, so nothing shows twice. When the map goes away the theme fills back in. While it is on, Waze's map on the HUD is off. Needs robertnisipeanu's Waze on Cluster; turning it off gives Waze its usual place back.
+- **Danger zone alert (M Blade and Navi):** shows the alert card while another app reports a zone ahead (see the two themes above). Off by default; nothing appears until an app writes the file.
 - **Badge:** the model name, like "BMW X3 M40i", as text in the theme's font (GT3 top left, Sport and M bottom centre). Off by default.
 - **Warnings:** oil, coolant and boost limits. A readout over its limit flashes red (oil 130°C and coolant 115°C by default, boost off).
 - **Test the shift lights:** runs the rpm up to the shift point for about 4 seconds while the car stands.

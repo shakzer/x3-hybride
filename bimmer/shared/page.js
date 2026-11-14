@@ -408,6 +408,11 @@ class Page {
         const ci = this.hud.windowOpen ? 'Window open: Cluster Centre / Cluster Info draw in it' : this.hud.ci && this.hud.ci.wantsWindow() ? 'Asked for, opening' : 'Closed (nothing asks for it)';
         note(cv, CX, y + 14, [ci + '. It is the same window Waze\'s map shows in (GT3, Sport and M).']);
         y += 40;
+        // the danger zone alert (M Blade and Navi, danger.js): shows only while another app says a zone is ahead
+        y = this.toggleRow(cv, CX, y, w, 'Danger zone alert (M Blade and Navi)', 'dangerAlert');
+        const dz = this.hud.danger ? this.hud.danger.state() : null;
+        note(cv, CX, y + 8, [dz && dz.on ? 'Showing a zone ' + Math.round(dz.distM) + ' m ahead (from ' + dz.app + ')' : 'Nothing to show: it needs an app that tells it where a zone is (danger-<app>.json in /dev/shm/cluster-themes).']);
+        y += 26;
         note(cv, CX, y + 26, [
             'On: GT3, Sport and M open a window in the middle and Waze on Cluster draws its map in it, above',
             'BMW\'s own map view, so nothing shows twice. When the map goes away the theme fills back in.',
