@@ -43,7 +43,7 @@ def emblem(x, y, keep):
 # ------------------------------------------------------------------------------------------------ M Blade
 # Waze's map is drawn at a fixed place: the centred 1088x480 of the panel (x 416..1504, y 120..600, its middle at x 960).
 # A window has to cover that middle, so with the map up (or Cluster Centre / Cluster Info) M Blade is rebuilt: a smaller
-# card on the left, the window in the middle (x 600..1054, y 168..502), the blade and its gauges moved right by DX.
+# card on the left, the window in the middle (x 600..1010, y 168..600), the blade and its gauges moved right by DX.
 DX = 148
 
 
@@ -95,7 +95,7 @@ def mblade():
     W.append(dict(base, id='backdrop_open', toggle='mapUp', card=[116, 149, 592, 34], cardB=[500, 556, 322, 460],
                   bl=[105, 609, 1178 + DX, -0.6], br=[1347 + DX, -0.643, 1037 + DX, 640],
                   g0=[1371 + DX, 427, 1260 + DX, 601], g1=[1532 + DX, 427, 1428 + DX, 601],
-                  hole=[592, 160, 470, 350], holeWhen='mapUp', holeInset=8, holeRadius=22))
+                  hole=[592, 160, 426, 448], holeWhen='mapUp', holeInset=8, holeRadius=22))
     W.append(shiftlight(750, 32))          # where BMW's own shift light sits (x 750..1170), as on the M and Sport themes
     # (no ONE OF ONE lettering here: centred under the shift light it runs into the card's corner and the blade's first line)
     # gear and speed on the plate; on the small card while the window is open
@@ -123,7 +123,7 @@ def mblade():
                   "light (x 587..626, y 663..700); the oil and outside temperatures are on the right. Waze's map is drawn at the centred "
                   "1088x480 of the panel, so with 'Show Waze map inside the theme' (or Cluster Centre / Cluster Info) the theme is rebuilt "
                   "(backdrop_open and the o_ readouts): a small card on the left with the gear and speed, the see-through window at "
-                  "x 600..1054, y 168..502 over the map's middle, and the blade and gauges moved 148 px right. The blade and the gauges "
+                  "x 600..1010, y 168..600 over the map's middle, and the blade and gauges moved 148 px right. The blade and the gauges "
                   "keep clear of the black box BMW draws at x 1406..1597, y 342..419. Widget reference: shared/hud.js header.",
         'widgets': W,
     }
