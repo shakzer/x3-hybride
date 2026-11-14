@@ -155,6 +155,12 @@
  * of the box (a top-to-bottom gradient, the chrome look). Text: "hotWhen": "now" turns it the shift red
  * at the shift point; "coldWhen": "cold" turns it blue while the cold guard lowers the shift point.
  * scale: "over" as revbar; "redFrom": true draws the numbers from the redline on in red.
+ * shiftlight  effect layer (shaders.js shiftlight): the stock BMW shift light, the M and Sport themes': "segments" (5) slanted
+ *   lights on each side of a solid red centre block ("center" px wide, "gap" px, "skew" px lean, "lean": "in" tops lean to the
+ *   centre, "out"). The orange lights fill from the outer ends in as the rpm climbs from "from" (3000); the red block comes on
+ *   at the red zone's start (the setting "shiftLightRed", 4500 rpm on the X3 30e, else "red": the shift point) and everything
+ *   flashes red at 8 Hz from the zone's end ("shiftLightFlash", 5500, else "flash": the redline). "off": alpha of an unlit
+ *   light (0.14).
  * lights: "count" (12), "from" rpm (3000) where the first light comes on, "tail" (0): the last "tail" lights are blue
  *   (the GT3 look); "round": true for dots;
  * "off" the alpha of an unlit light (0.14).
@@ -217,6 +223,7 @@ const Waze = require('./waze');
 const Screen = require('./screen');
 const { ClusterInfo } = require('./cluster_info');
 const { freeRect } = require('./free_rect');
+const { shiftLightState } = require('./shift_light');
 const badges = require('./badges');
 const Runs = require('./runs');
 const tz = require('./tz');
@@ -2019,6 +2026,19 @@ class HudApp {
             c.uniform(ref, 'u_red', rgb(LIGHTS.red));
             c.uniform(ref, 'u_blue', rgb(LIGHTS.blue));
             c.uniform(ref, 'u_off', [w.off === undefined ? 0.14 : w.off]);
+        } else if (w.type === 'shiftlight') {
+            const h = w.h;
+            c.uniform(ref, 'u_size', [w.w, h]);
+            c.uniform(ref, 'u_n', [w.segments || 5]);
+            c.uniform(ref, 'u_cw', [isNum(w.center) ? w.center : Math.round(h * 1.4)]);
+            c.uniform(ref, 'u_gap', [isNum(w.gap) ? w.gap : 7]);
+            c.uniform(ref, 'u_skew', [isNum(w.skew) ? w.skew : Math.round(h * 0.4)]);
+            c.uniform(ref, 'u_lean', [w.lean === 'out' ? -1 : 1]);
+            c.uniform(ref, 'u_color', rgb(LIGHTS.orange));
+            c.uniform(ref, 'u_red', rgb(LIGHTS.red));
+            c.uniform(ref, 'u_off', [w.off === undefined ? 0.14 : w.off]);
+            c.uniform(ref, 'u_lit', [0]);
+            c.uniform(ref, 'u_flash', [0]);
         } else if (w.type === 'fill') {
             c.uniform(ref, 'u_size', [w.w, w.h]);
             c.uniform(ref, 'u_color', rgba(color(t, w.color || 'bg')));
@@ -2354,6 +2374,19 @@ class HudApp {
             x.c.uniform(x.ref, 'u_shift', [sp.rpm]);
             x.c.uniform(x.ref, 'u_peak', [peak]);
             x.c.uniform(x.ref, 'u_shiftNow', [sp.now ? 1 : 0]);
+        } else if (w.type === 'shiftlight') {
+            const rpm = this._raw('rpm'), n = w.segments || 5;
+            // the orange lights fill from "from" (3000) up to where the red block comes on (4500 on the X3 30e, the setting
+            // "shiftLightRed"); the red zone runs to "shiftLightFlash" (5500), where everything flashes
+            const rs = this.ctx.settings.item('shiftLightRed'), fs = this.ctx.settings.item('shiftLightFlash');
+            const red = rs ? this.setting('shiftLightRed') : isNum(w.red) ? w.red : this._shift().rpm;
+            const flash = Math.max(red + 100, fs ? this.setting('shiftLightFlash') : isNum(w.flash) ? w.flash : this.setting('redline'));
+            const st = shiftLightState(rpm, { n, from: w.from, red, flash }, now), lit = st.lit, blink = st.flash;      // (8 Hz in the red zone's end)
+            const key = lit + '|' + (blink ? 'f' : '');
+            if (!force && key === x.last) return;
+            x.last = key;
+            x.c.uniform(x.ref, 'u_lit', [lit]);
+            x.c.uniform(x.ref, 'u_flash', [blink ? 1 : 0]);
         } else if (w.type === 'lights') {
             const rpm = this._raw('rpm'), sp = this._shift(), n = this._wings(w) ? Math.ceil((w.count || 12) / 2) : w.count || 12;
             // the lights fill from "from" rpm (3000) up to the shift point; a "from" at or past it means the last 500 rpm

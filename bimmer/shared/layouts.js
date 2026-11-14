@@ -21,6 +21,7 @@ const TYPES = {
     arc: ['signal', 'min', 'max'],
     revbar: ['barH'],
     lights: [],
+    shiftlight: [],
     badge: ['text', 'font', 'tone'],
     fill: [],
     box: [],

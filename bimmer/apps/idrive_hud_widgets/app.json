@@ -29,7 +29,8 @@
     "cluster_info.js",
     "free_rect.js",
     "runs.js",
-    "tz.js"
+    "tz.js",
+    "shift_light.js"
   ],
   "signals": {
     "de.bmw.infotainment.vehicle.CDS": {

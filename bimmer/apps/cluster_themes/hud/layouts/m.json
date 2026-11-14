@@ -160,6 +160,22 @@
       "max": 7000
     },
     {
+      "id": "shiftlight",
+      "type": "shiftlight",
+      "z": 3,
+      "x": 750,
+      "y": 106,
+      "w": 420,
+      "h": 56,
+      "segments": 5,
+      "from": 3000,
+      "toggle": "stockShiftLight",
+      "red": 4500,
+      "flash": 5500,
+      "gap": 11,
+      "center": 72
+    },
+    {
       "id": "nl0",
       "type": "text",
       "z": 5,

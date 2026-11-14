@@ -29,7 +29,8 @@
     "cluster_info.js",
     "free_rect.js",
     "runs.js",
-    "tz.js"
+    "tz.js",
+    "shift_light.js"
   ],
   "signals": {
     "de.bmw.infotainment.vehicle.CDS": {
@@ -641,6 +642,40 @@
         500,
         800,
         1000
+      ]
+    },
+    {
+      "key": "stockShiftLight",
+      "label": "Shift light, M and Sport (BMW style)",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "key": "shiftLightRed",
+      "label": "Shift light turns red at",
+      "type": "number",
+      "unit": "rpm",
+      "default": 4500,
+      "steps": [
+        3500,
+        4000,
+        4500,
+        5000,
+        5500
+      ]
+    },
+    {
+      "key": "shiftLightFlash",
+      "label": "Shift light flashes from",
+      "type": "number",
+      "unit": "rpm",
+      "default": 5500,
+      "steps": [
+        5000,
+        5500,
+        6000,
+        6500,
+        7000
       ]
     },
     {

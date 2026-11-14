@@ -275,6 +275,50 @@ void main() {
 }
 `;
 
+const SHIFTLIGHT = `// The stock BMW shift light for a cluster-render "effect" layer (GLSL ES 1.00): u_n slanted lights on each side of
+// a solid centre block, mirrored. u_lit lights them from the outer ends in towards the centre (u_n lights on each
+// side, then the centre block as the last step, u_n + 1 in all). u_flash 1 = the redline flash: everything lit red.
+//   u_size px, u_n lights each side, u_lit 0..u_n+1, u_flash 0/1, u_cw centre block width px, u_gap px between
+//   lights, u_skew px a light leans over the layer's height, u_lean +1 = the tops lean in towards the centre ("/ \\"),
+//   -1 = out, u_color the lights, u_red the centre block and the flash, u_off alpha of an unlit light
+precision mediump float;
+varying vec2 v_uv;
+uniform vec2 u_size;
+uniform float u_n;
+uniform float u_lit;
+uniform float u_flash;
+uniform float u_cw;
+uniform float u_gap;
+uniform float u_skew;
+uniform float u_lean;
+uniform vec3 u_color;
+uniform vec3 u_red;
+uniform float u_off;
+
+float cov(float d) { return clamp(d + 0.5, 0.0, 1.0); }
+
+void main() {
+    float W = u_size.x, H = u_size.y;
+    float px = v_uv.x * W, py = v_uv.y * H;
+    float xs = abs(px - W * 0.5) + u_lean * u_skew * (0.5 - py / H);     // distance from the centre, along the slant
+    float vert = cov(min(py, H - py));
+    float hw = u_cw * 0.5;
+    bool every = u_flash > 0.5;
+    if (xs < hw + 0.5) {
+        gl_FragColor = vec4(u_red, cov(hw - xs) * vert * ((every || u_lit > u_n + 0.5) ? 1.0 : u_off));
+        return;
+    }
+    float t = xs - hw - u_gap;
+    float pitch = (W * 0.5 - u_skew * 0.5 - hw) / u_n;
+    float k = floor(t / pitch);
+    float within = t - k * pitch;
+    float segW = pitch - u_gap;
+    if (t < 0.0 || k >= u_n || within > segW + 0.5) { gl_FragColor = vec4(0.0); return; }
+    bool on = every || (u_n - 1.0 - k) < u_lit;
+    gl_FragColor = vec4(every ? u_red : u_color, cov(min(within, segW - within)) * vert * (on ? 1.0 : u_off));
+}
+`;
+
 const FILL = `// Solid fill for a cluster-render "effect" layer (GLSL ES 1.00): u_color everywhere, except a
 // see-through rounded hole u_hole (x, y, w, h px from the layer's top left; w = 0: no hole), radius u_holeR.
 // On the cluster, an opaque fill hides BMW's own gauges under it; the hole lets the map window show.
@@ -1304,4 +1348,4 @@ void main() {
 }
 `;
 
-module.exports = { shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, dial: DIAL, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES };
+module.exports = { shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, shiftlight: SHIFTLIGHT, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, dial: DIAL, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES };

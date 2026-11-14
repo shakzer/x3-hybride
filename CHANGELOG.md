@@ -3,6 +3,8 @@
 ## 14 novembre 2026
 
 ### bimmer/ (bimmer-lab/apps)
+- Thèmes M et Sport : **shift light façon BMW** (nouveau type de widget `shiftlight`, `shared/shaders.js`, `shared/shift_light.js` ; traits orange de 3 000 à 4 500 tr/min, bloc rouge à 4 500, clignotement dès 5 500) ; réglages `stockShiftLight`, `shiftLightRed`, `shiftLightFlash` ; test `tools/test_shiftlight.js`.
+- Page de réglages : lignes plus fines quand il y a plus de réglages que de place (le dernier n'est plus coupé).
 - Cluster Themes : **fenêtre du centre pour Cluster Centre et Cluster Info** (GT3, M, Sport). Le thème l'ouvre quand une de ces apps la demande (`/dev/shm/cluster-themes/window-<app>.json`), publie son rectangle et son état dans `themes.json` (`window`, `open`) ; réglage « Centre window for Cluster Centre / Cluster Info » (onglet Map, activé par défaut). `shared/cluster_info.js`, `shared/hud.js`.
 - HUD Widgets : publie la zone libre de sa mise en page pour le panneau de Cluster Info (`hud-layout.json`, `shared/free_rect.js`).
 - Tests : `tools/test_cluster_info.js` (fenêtre, zone libre pour chaque mise en page du HUD).

@@ -562,13 +562,15 @@ class Page {
         label(cv, CX, 70, 'Settings');
         const keys = this.cfg.settings.filter((k) => this.item(k));
         const colW = (CW - 24) / 2, per = Math.ceil(keys.length / 2);
+        // x3-hybride: more settings than rows at 64 px: slimmer rows (46 px, as the compact ones) rather than cutting the last
+        const rh = 84 + (per - 1) * 64 + 56 <= bottom ? 56 : 46, pitch = rh === 56 ? 64 : Math.min(64, Math.floor((bottom - 84 - rh) / Math.max(1, per - 1)));
         keys.forEach((k, i) => {
-            const x = CX + (i < per ? 0 : colW + 24), y = 84 + (i % per) * 64;
-            if (y + 56 > bottom) return;
+            const x = CX + (i < per ? 0 : colW + 24), y = 84 + (i % per) * pitch;
+            if (y + rh > bottom) return;
             const s = this.item(k);
-            if (s.type === 'bool') this.toggleRow(cv, x, y, colW, s.label, k);
-            else if (s.type === 'number') this.stepRow(cv, x, y, colW, s.label, k);
-            else this.pickRow(cv, x, y, colW, s.label, k);
+            if (s.type === 'bool') this.toggleRow(cv, x, y, colW, s.label, k, rh);
+            else if (s.type === 'number') this.stepRow(cv, x, y, colW, s.label, k, undefined, rh);
+            else this.pickRow(cv, x, y, colW, s.label, k, undefined, rh);
         });
         // what the engine says it is doing (layers, pixel memory, why nothing shows): for checking on the car
         cv.text(this.hud.lastStatus || '', CX, bottom - 6, 15, C.label, { literal: true });
@@ -600,14 +602,15 @@ class Page {
         cv.target(x, y, w, h, () => { this.picker = { key, title: name, fmt }; this.kick(); }, 'set:' + key, 14);
         return y + h + (h < 56 ? 6 : 8);
     }
-    stepRow(cv, x, y, w, name, key, fmt) {
-        this.rowBox(cv, x, y, w, name, 56);
-        const s = this.item(key), steps = s.steps || [], i = steps.indexOf(this.get(key));
+    stepRow(cv, x, y, w, name, key, fmt, h) {
+        h = h || 56;
+        this.rowBox(cv, x, y, w, name, h);
+        const s = this.item(key), steps = s.steps || [], i = steps.indexOf(this.get(key)), yo = (h - 56) / 2;
         const bx = x + w - 66, ax = bx - 236;
-        stepBtn(cv, ax, y + 9, '-', i > 0, () => this.set(key, steps[i - 1]), 'dn:' + key);
-        cv.text(fmt ? fmt(this.get(key)) : this.valueText(key), ax + 140, y + 35, 19, C.blueHi, { align: 'center', font: 'bold', literal: true });
-        stepBtn(cv, bx, y + 9, '+', i < steps.length - 1, () => this.set(key, steps[i + 1]), 'up:' + key);
-        return y + 64;
+        stepBtn(cv, ax, y + 9 + yo, '-', i > 0, () => this.set(key, steps[i - 1]), 'dn:' + key);
+        cv.text(fmt ? fmt(this.get(key)) : this.valueText(key), ax + 140, y + 35 + yo, 19, C.blueHi, { align: 'center', font: 'bold', literal: true });
+        stepBtn(cv, bx, y + 9 + yo, '+', i < steps.length - 1, () => this.set(key, steps[i + 1]), 'up:' + key);
+        return y + h + 8;
     }
     chipRow(cv, x, y, w, name, key) {
         glass(cv, x, y, w, 64, false);
