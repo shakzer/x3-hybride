@@ -1903,7 +1903,7 @@ class HudApp {
             c.uniform(ref, 'u_holeR', [this._holeRadius(w)]);
             c.uniform(ref, 'u_strip', w.strip);
             c.uniform(ref, 'u_topEnd', [w.topEnd]);
-            c.uniform(ref, 'u_tint', [this.ctx.settings.item('sportTint') ? Math.max(0, this.setting('sportTint')) / 100 : 0]);
+            c.uniform(ref, 'u_tint', [this._tint()]);
         } else if (w.type === 'mblade') {
             // the M Blade theme (shaders.js mblade): geometry in panel px from the layout, see the widget notes in the header
             const [redFrom, orange] = this._redMarks(w.rpmMax || 7000);
@@ -1930,6 +1930,7 @@ class HudApp {
             c.uniform(ref, 'u_red', rgb(t.hot));
             c.uniform(ref, 'u_hole', this._hole(w));
             c.uniform(ref, 'u_holeR', [this._holeRadius(w)]);
+            c.uniform(ref, 'u_tint', [this._tint()]);
         } else if (w.type === 'navi') {
             const B = w.band, L = w.line, L2 = w.line2;
             c.uniform(ref, 'u_size', [w.w, w.h]);
@@ -1944,6 +1945,7 @@ class HudApp {
             c.uniform(ref, 'u_barR', [w.barR[0], w.barR[1], w.barR[2], 0]);
             c.uniform(ref, 'u_hole', this._hole(w));
             c.uniform(ref, 'u_holeR', [this._holeRadius(w)]);
+            c.uniform(ref, 'u_tint', [this._tint()]);
         } else if (w.type === 'mdash') {
             const ty = w.tyres || [0, 0, 0], L = w.gaugeL || {}, R = w.gaugeR || {}, b = w.blade || {};
             const bars = Array.isArray(w.segbars) ? w.segbars.slice(0, 4) : [];
@@ -2199,6 +2201,8 @@ class HudApp {
     }
 
     _holeRadius(w) { return isNum(w.holeRadius) ? w.holeRadius : 28; }
+    /** The strength of the navy backdrop of the Sport, M Blade and Navi themes: the setting "sportTint" in % of the car's own blue (0 = pure black). */
+    _tint() { return this.ctx.settings.item('sportTint') ? Math.max(0, this.setting('sportTint')) / 100 : 0; }
 
     _tick() {
         const now = Date.now();

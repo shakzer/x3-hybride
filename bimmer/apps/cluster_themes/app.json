@@ -731,7 +731,7 @@
     },
     {
       "key": "sportTint",
-      "label": "Sport theme: blue background",
+      "label": "Blue background (Sport, M Blade, Navi)",
       "type": "number",
       "unit": "%",
       "default": 80,

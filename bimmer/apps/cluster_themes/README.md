@@ -40,16 +40,16 @@ The look of BMW's newer Live Cockpit Sport view.
 
 - **Left:** speed as a blue bracket on BMW's 0 to 200 mph scale (0 to 320 km/h), with the digital speed and a fuel bar inside it.
 - **Right:** revs as a red bracket on the M40i's 0 to 7000 rpm scale, with yellow and red marks around your redline, with the gear and an oil temperature bar inside it.
-- **Middle:** black, or the Waze map with "Show Waze map inside the theme" on.
+- **Middle:** deep navy with a lighter glow and a faceted pattern of lozenges, as on BMW's Sport view, or the Waze map with "Show Waze map inside the theme" on. The whole panel behind the brackets is navy too, not black (the setting "Blue background", 80 % by default, 0 = black).
 - **Bottom:** boost and coolant in the blue and red strip, plus the clock, range and outside temperature.
 
 <p align="center"><img src="../../docs/images/cluster-sport.png" width="900" alt="Sport theme"></p>
 
 ### M Blade
 
-A blue M card on the left and one big red rev blade on the right (0 to 7000 rpm, with the marks around your redline), copied from a screenshot of a cluster style seen online. Added next to M and Sport, they are not replaced.
+A blue M card on the left and one big red rev blade on the right (0 to 7000 rpm, with the marks around your redline), copied from a screenshot of a cluster style seen online. Added next to M and Sport, they are not replaced. Both have the same navy faceted backdrop as the Sport theme instead of black (setting "Blue background (Sport, M Blade, Navi)"; BMW's black gear box, which the car draws over the panel and which cannot be removed, sits in a rounded dark window with a soft shadow so it does not show as a hard rectangle; the map window stays see-through).
 
-- **Left:** a blue card with M-coloured stripes, the gear on a dark plate and the speed under it. With "Show Waze map inside the theme" or Cluster Centre on, the theme is rebuilt as the Sport theme is: the window opens in the middle (the map's full height), the rev blade stays on the left, the card with the gear and speed moves to the right, with the gauges under it. Nothing is hidden under the map. (Waze draws its map at a fixed place, the centre of the panel, and BMW's black gear box covers its right edge, so the window shows the middle 852 px of it; it cannot sit on the card as in the screenshot.)
+- **Left:** a blue card with M-coloured stripes and the speed, big, on a dark plate (no gear: BMW's own black box at the right already shows it). With "Show Waze map inside the theme" or Cluster Centre on, the theme is rebuilt as the Sport theme is: the window opens in the middle (the map's full height), the rev blade stays on the left, the card with the speed moves to the right, with the gauges under it. Nothing is hidden under the map. (Waze draws its map at a fixed place, the centre of the panel, and BMW's black gear box covers its right edge, so the window shows the middle 852 px of it; it cannot sit on the card as in the screenshot.)
 - **Right:** the revs as the red blade, then two thin slanted gauges: the **hybrid battery** (in the place the photo has an oil gauge) with the electric range under it, and the **fuel** with the range under it. The battery charge is also written at the bottom right, the clock at the bottom left.
 - **Oil and outside temperature:** in the free space on the right, under BMW's black gear box.
 - **Top:** the shift light, which sits where BMW's own does. There is no ONE OF ONE lettering in this theme: centred under the shift light it ran into the card and the blade.
@@ -60,10 +60,10 @@ A blue M card on the left and one big red rev blade on the right (0 to 7000 rpm,
 
 A diagonal speed band on the left, a big rounded window in the middle for the map and a thin line along the bottom, copied from the same screenshot.
 
-- **Left:** the speed as a blue band running down to the lower right, with the speed scale along its edge and a purple band beside it. With the middle window closed, the gear and speed are big in the centre; with it open, the band gets steeper and narrower to stay left of the window, and the gear and speed go big on the right.
+- **Left:** the speed as a blue band running down to the lower right, with the speed scale along its edge and a purple band beside it. With the middle window closed, the speed is big in the centre (no gear: BMW's own black box already shows it); with it open, the band gets steeper and narrower to stay left of the window, and the gear and speed go big on the right.
 - **Middle:** the map window (Waze on Cluster, or the pages of Cluster Centre and Cluster Info). Black with a thin outline when nothing shows in it.
 - **Bottom:** a fuel bar with its range at the left, the clock, and a hybrid battery bar with its charge and electric range at the right. Oil and outside temperature are in the free space on the right.
-- **Top:** the shift light, and under it, centred above the gear, the ONE OF ONE lettering (from the "lettering" setting). The lettering goes away while the middle window is open, so it never covers the Waze map.
+- **Top:** the shift light, and under it, centred above the speed, the ONE OF ONE lettering (from the "lettering" setting). The lettering goes away while the middle window is open, so it never covers the Waze map.
 
 Neither theme has been tried on a car; they are checked on the bench against the screenshot and for BMW's black gear box, seat-belt light and the hood. The gear letters use the app's own font, not the boxed one of the screenshot.
 
@@ -136,6 +136,7 @@ More themes are on the way.
 - **Theme**, and one per drive mode.
 - **Readouts:** pick which car sensor each GT3, Roadster, Track, Drag, Rally, Retro 80s or Dyno readout shows (speed, rpm, boost, temperatures, tyres, fuel, g, power and more). Plug-in hybrids can also show **Hybrid battery**, the high-voltage battery's charge in % (not yet checked on a hybrid). They can also show **Electric range**: that charge times the **Electric range when full** setting (40 km by default; an X3 xDrive30e is rated 42 to 50 km). It is an estimate, not BMW's own figure.
 - **Show Waze map inside the theme:** GT3, Sport, M, M Blade and Navi open a window in the middle and Waze on Cluster draws its map in it, above BMW's own map view, so nothing shows twice. When the map goes away the theme fills back in. While it is on, Waze's map on the HUD is off. Needs robertnisipeanu's Waze on Cluster; turning it off gives Waze its usual place back.
+- **Blue background (Sport, M Blade, Navi):** how strong the navy faceted backdrop is, in % of the car's own blue (80 % by default, 0 = pure black, up to 140 %). The car brightens dark tints, so set it by eye.
 - **Danger zone alert (M Blade and Navi):** shows the alert card while another app reports a zone ahead (see the two themes above). Off by default; nothing appears until an app writes the file.
 - **Badge:** the model name, like "BMW X3 M40i", as text in the theme's font (GT3 top left, Sport and M bottom centre). Off by default.
 - **Warnings:** oil, coolant and boost limits. A readout over its limit flashes red (oil 130°C and coolant 115°C by default, boost off).

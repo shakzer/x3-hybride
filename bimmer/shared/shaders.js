@@ -781,13 +781,47 @@ void main() {
     gl_FragColor = c;
 }
 `;
+const FACETS = `// BMW draws a solid black box over our panel at its gear slot (1406,342)-(1597,419), the same zone as shared/visible.js. It cannot be
+// removed, so the backdrop is made to meet it: slot() is 0 inside a rounded window 4 px bigger all round (the box, whose edges are
+// only measured to a few px, hides inside it) and, outside it, a soft shadow (45 % of the backdrop, back to all of it over 36 px).
+float slotD(vec2 p) {
+    vec2 q = abs(p - vec2(1501.5, 380.5)) - (vec2(99.5, 42.5) - vec2(16.0));
+    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - 16.0;
+}
+float slot(vec2 p) { float d = slotD(p); return clamp(d + 0.5, 0.0, 1.0) * mix(0.45, 1.0, smoothstep(0.0, 36.0, d)); }
+float hash2(vec2 i) { return fract(sin(dot(i, vec2(12.9898, 78.233))) * 43758.5453); }
+// the facets of the Sport view's backdrop, in the left frame (the right one is mirrored): lozenges between two families of
+// slanted lines, each in one of three shades (0, 0.55, 1), and a thin lit edge on the lines. x: the shade, y: the edge.
+vec2 facets(vec2 q) {
+    float u1 = (q.x + 0.62 * q.y) / 190.0;
+    float u2 = (q.x - 0.34 * q.y + 60.0) / 230.0;
+    float h = hash2(vec2(floor(u1), floor(u2)));
+    float shade = h < 0.3 ? 0.0 : (h < 0.62 ? 0.5 : 1.0);
+    float d1 = min(fract(u1), 1.0 - fract(u1)) * 190.0 * 0.85;
+    float d2 = min(fract(u2), 1.0 - fract(u2)) * 230.0 * 0.95;
+    return vec2(shade, max(cov(d1 - 0.9), cov(d2 - 0.9)));
+}
+`;
+// The navy backdrop of the M Blade and Navi themes, the Sport view's over the whole panel: a dark blue with a soft glow round the
+// middle and the facets (mirrored on the right, fading out over the middle where the readouts are). Needs cov() and FACETS above it.
+// The result is multiplied by u_tint (the setting "sportTint", 0 = pure black).
+const NAVY = `vec3 navyFacets(vec2 p, vec2 size) {
+    vec2 pm = vec2(size.x - p.x, p.y);
+    float gx = (p.x - size.x * 0.5) / 440.0, gy = (p.y - 330.0) / 230.0;
+    vec3 navy = mix(vec3(0.016, 0.05, 0.125), vec3(0.026, 0.08, 0.19), exp(-gx * gx - gy * gy));
+    float side = clamp((abs(p.x - size.x * 0.5) - 60.0) / 200.0, 0.0, 1.0);
+    vec2 fc = facets(p.x < size.x * 0.5 ? p : pm);
+    return (navy + (vec3(0.014, 0.045, 0.11) * fc.x + vec3(0.03, 0.08, 0.17) * fc.y * 0.55) * side) * slot(p);
+}
+`;
 const SDASH = `// The Sport theme in one cluster-render "effect" layer (GLSL ES 1.00), after BMW's Live Cockpit Sport view:
 // a blue speed bracket left and a red rev bracket right (the left one mirrored). Each is a thin bright outer
 // line, a band that fills from the bottom (white marker at the value), a dark gap and a thin inner line round a
 // black middle: plain black, or the map through a see-through rounded hole (u_hole; only the bottom strip draws
 // over it, the fuel and oil bars are off while it is open). Two-tone fuel and oil bars inside the brackets, a blue / red strip at the bottom. v_uv (0,0) is
-// the top-left. Outside the brackets the backdrop is pure black (the car brightens dark tints, seen Nov 5 2026); inside
-// them it is BMW's own deep blue with a lighter glow in the middle, as on the car's Sport view, scaled by u_tint (0 = pure black).
+// the top-left. The backdrop is BMW's own deep navy, as on the car's Sport view (a photo of it, Nov 14 2026): a darker navy
+// everywhere, a lighter one between the brackets with a glow in the middle and a faceted pattern of lozenges (two families of
+// slanted lines, three shades, a thin lit edge; mirrored on the right), all scaled by u_tint (0 = pure black).
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
 #else
@@ -832,7 +866,7 @@ vec4 over(vec4 top, vec4 under) {
 }
 float segD(vec2 p, vec2 a, vec2 b) { vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h); }
 float segH(vec2 p, vec2 a, vec2 b) { vec2 ba = b - a; return clamp(dot(p - a, ba) / dot(ba, ba), 0.0, 1.0); }
-
+${FACETS}
 float outerX(float y) {
     float dy = y - u_geo.y;
     float k = dy < 0.0 ? u_k.x : u_k.y;
@@ -909,12 +943,19 @@ void main() {
     vec2 pm = vec2(u_size.x - p.x, p.y);
     vec4 c = vec4(0.0, 0.0, 0.0, 1.0);
     if (u_tint > 0.0) {
-        // inside both inner lines, between the top run and the bottom line: deep blue, a lighter glow round the middle
+        // everywhere a dark navy (no black round the brackets and under the scale numbers); inside both inner lines, between the top
+        // run and the bottom line, a lighter deep blue with a glow round the middle and the facets
+        c.rgb = vec3(0.012, 0.036, 0.09) * u_tint;
         float yIn = step(u_geo.x + 10.0, p.y) * step(p.y, u_geo.z - 8.0);
         float il = clamp(dIn(p) - u_inner - 2.0, 0.0, 1.0), ir = clamp(dIn(pm) - u_inner - 2.0, 0.0, 1.0);
         float gx = (p.x - u_size.x * 0.5) / 440.0, gy = (p.y - (u_geo.y + 30.0)) / 190.0;
-        vec3 navy = mix(vec3(0.012, 0.062, 0.115), vec3(0.036, 0.17, 0.25), exp(-gx * gx - gy * gy)) * u_tint;
-        c.rgb = navy * (il * ir * yIn);
+        vec3 navy = mix(vec3(0.03, 0.09, 0.19), vec3(0.04, 0.12, 0.24), exp(-gx * gx - gy * gy));
+        // two panels as on the photo: the facets fade out towards the middle, where the navy stays plain
+        float side = clamp((abs(p.x - u_size.x * 0.5) - 60.0) / 200.0, 0.0, 1.0);
+        vec2 fc = facets(p.x < u_size.x * 0.5 ? p : pm);
+        navy += (vec3(0.02, 0.07, 0.16) * fc.x + vec3(0.07, 0.2, 0.38) * fc.y * 0.6) * side;
+        c.rgb = mix(c.rgb, navy * u_tint, il * ir * yIn);
+        c.rgb *= slot(p);
     }
 
     c = bracket(p, u_speed, 2.0, 2.0, u_ticks.x, BLUE_LINE, BLUE_BAND, BLUE_LIT, BLUE_IN, c);
@@ -985,6 +1026,7 @@ uniform float u_shiftNow;
 uniform vec3 u_red;
 uniform vec4 u_hole;      // map window x, y, w, h, already inset (w 0 = none)
 uniform float u_holeR;
+uniform float u_tint;     // the navy backdrop's strength 0..1.4 (0 = pure black)
 
 float cov(float d) { return clamp(0.5 - d, 0.0, 1.0); }
 vec4 over(vec4 top, vec4 under) {
@@ -993,6 +1035,8 @@ vec4 over(vec4 top, vec4 under) {
     return vec4((top.rgb * top.a + under.rgb * under.a * (1.0 - top.a)) / a, a);
 }
 float segD(vec2 p, vec2 a, vec2 b) { vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h); }
+${FACETS}
+${NAVY}
 float smax(float a, float b, float k) { float h = clamp(0.5 + 0.5 * (a - b) / k, 0.0, 1.0); return mix(b, a, h) + k * h * (1.0 - h); }
 // a thin pair of slanted lines from the top end a to the bottom end b, the gap between them filled from the bottom up to v
 vec4 gauge(vec2 p, vec4 g, float v, vec3 fill, vec4 c) {
@@ -1011,7 +1055,8 @@ vec4 gauge(vec2 p, vec4 g, float v, vec3 fill, vec4 c) {
 
 void main() {
     vec2 p = v_uv * u_size;
-    vec4 c = vec4(0.0, 0.0, 0.0, 1.0);        // pure black (the car brightens dark tints); BMW's own gauges stay hidden under it
+    // the Sport view's navy with its facets (pure black with the tint at 0); BMW's own gauges stay hidden under it
+    vec4 c = vec4(u_tint > 0.0 ? navyFacets(p, u_size) * u_tint : vec3(0.0), 1.0);
 
     // ---- the card: left edge, flat top, a point on the right, flat bottom; the corners rounded ----
     vec2 va = vec2(u_cardB.x, u_cardA.y), vv = u_cardB.yz, vb = vec2(u_cardB.w, u_cardA.z);
@@ -1110,7 +1155,7 @@ const NAVI = `// The Navi theme in one cluster-render "effect" layer (GLSL ES 1.
 // in from black, a thin pale edge, and a white marker across it at the speed), the big rounded map window, the white
 // line under the map that steps up at the right, and two thin bars along the bottom (fuel left, battery right). The
 // window is cut see-through while u_hole is set (Waze, Cluster Centre, Cluster Info); the band is drawn over it.
-// v_uv (0,0) is the top-left. Outside the shapes the backdrop is pure black (the car brightens dark tints).
+// v_uv (0,0) is the top-left. Outside the shapes the backdrop is the Sport view's navy with facets (u_tint 0 = pure black).
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
 #else
@@ -1129,8 +1174,11 @@ uniform vec4 u_barL;      // left bar: x, y, width, level 0..1
 uniform vec4 u_barR;
 uniform vec4 u_hole;      // map window x, y, w, h, already inset (w 0 = none)
 uniform float u_holeR;
+uniform float u_tint;     // the navy backdrop's strength 0..1.4 (0 = pure black)
 
 float cov(float d) { return clamp(0.5 - d, 0.0, 1.0); }
+${FACETS}
+${NAVY}
 vec4 over(vec4 top, vec4 under) {
     float a = top.a + under.a * (1.0 - top.a);
     if (a <= 0.0) return vec4(0.0);
@@ -1154,8 +1202,8 @@ vec4 bar(vec2 p, vec4 b, vec3 glowA, vec3 glowB, vec4 c) {
 
 void main() {
     vec2 p = v_uv * u_size;
-    vec4 c = vec4(0.0, 0.0, 0.0, 1.0);
-    // the map window: cut out of the black, with a thin pale outline just outside it
+    vec4 c = vec4(u_tint > 0.0 ? navyFacets(p, u_size) * u_tint : vec3(0.0), 1.0);
+    // the map window: cut out of the backdrop, with a thin pale outline just outside it
     if (u_hole.z > 0.0) {
         vec2 hs = u_hole.zw * 0.5;
         vec2 q = abs(p - (u_hole.xy + hs)) - (hs - vec2(u_holeR));
