@@ -15,11 +15,17 @@
  *
  * Updates go at most UPDATE_MS apart and only when what is drawn changes, as the rectangles that
  * changed, so the overlay costs the map's upload budget next to nothing.
+ *
+ * x3-hybride: under a Cluster Themes theme (GT3, Sport, M) the map shows in the theme's centre window, which is
+ * smaller than the map's picture (M: 510x275). Then the panel keeps to that window, at its top or bottom, and the
+ * app asks the theme to open the window (window-cluster_info.json, shared/yield.js). With no Waze map the panel
+ * shows alone in the window on the centre slot, unless Cluster Centre's pages are in it.
  */
 const fs = require('fs');
 const path = require('path');
 const { Canvas, withAlpha } = require('./kit/canvas');
 const G = require('./kit/gauges');
+const yielding = require('./yield');      // x3-hybride: Cluster Themes' centre window (shared/yield.js)
 
 const STATUS = process.env.WOC_STATUS || '/run/waze-on-cluster/status.json';   // (the variable: tests)
 const UPDATE_MS = 250;            // the badge redrawn at least this often while up (the clock, the theme)
@@ -137,21 +143,25 @@ function underStrip(h) {
 /** The badge's place and size inside the map's rectangle r: { x, y, w, h, ph } on the target; ph is the panel's
  *  own height, h the layer's (with underOn, the thin kW bar's strip above the panel too: the panel stays where it
  *  was, the layer reaches up over it). */
-function badgeRect(r, where, target, extras, hasPower, underOn) {
+function badgeRect(r, where, target, extras, hasPower, underOn, inRoom) {
     if (hasPower === undefined) hasPower = true;      // true: the kW and its bar, 'number': the kW alone, false: neither
     // the HUD's size to its map's width; on the cluster 1.3 times it (72 high), read at a glance past the wheel;
     // each extra value (a temperature) adds a column EXTRA_COL times the height wide
     let s = target === 'hud' ? Math.max(0.62, Math.min(HUD_MAX_H / 56, r.w / 400)) : 1.3;   // (HUD: up to HUD_MAX_H high)
+    // x3-hybride: in the room a HUD Widgets layout leaves (r is that room, not the map): as tall as it allows, then narrowed to it
+    if (inRoom && target === 'hud') s = Math.max(0.5, Math.min(HUD_MAX_H / 56, r.h / 56));
     const size = (sc) => {
         const hh = Math.round(56 * sc / 2) * 2;
         const L = layout(hh, hasPower !== 'number'), ww = (hasPower ? L.w : L.pad) + (extras || 0) * colW(hh) + (hasPower ? 0 : L.pad);
         return [hh, Math.min(Math.ceil(ww / 4) * 4, r.w & ~3)];
     };
     let [h, w] = size(s);
+    // a window narrower than the panel (a theme's centre window): smaller until it fits, down to 0.7
+    if (target !== 'hud' || inRoom) { const min = inRoom ? 0.5 : 0.7; while (w > r.w - 8 && s > min) { s = Math.max(min, s - 0.02); [h, w] = size(s); } }
     // the HUD: right of the speed readout. A panel too wide to end inside the map there first moves left (under
     // the car arrow's stem, as far as HUD_SPEED_CLEAR), and only then is made smaller
     const hudRight = Math.min(r.x + r.w, HUD_VISIBLE_RIGHT);
-    if (target === 'hud' && where !== 'top' && HUD_SPEED_CLEAR + w > hudRight) {
+    if (target === 'hud' && !inRoom && where !== 'top' && HUD_SPEED_CLEAR + w > hudRight) {
         const min = s * 0.7;
         s = Math.max(min, s * (hudRight - HUD_SPEED_CLEAR) / w);
         [h, w] = size(s);
@@ -162,13 +172,13 @@ function badgeRect(r, where, target, extras, hasPower, underOn) {
     // car's arrow in the middle); on the HUD near the edge of the map's picture, and at the bottom to the right
     // of HUD_SPEED_RIGHT: the HUD's own speed readout sits left of the middle on that row (seen on a G05)
     // (cluster: at the bottom edge, below the car's arrow in the middle of the map, which it covered higher up)
-    const m = target === 'hud' ? 4 : 32;   // (HUD: its digits on the speed readout's line; cluster: clear of the dimmed edge below)
+    const m = inRoom ? 0 : target === 'hud' ? 4 : 32;   // (HUD: its digits on the speed readout's line; cluster: clear of the dimmed edge below)
     const ph = h;
     h = ph + (underOn ? underStrip(ph).total : 0);
     let y = where === 'top' ? r.y + m : r.y + r.h - h - m;
     if (target === 'hud') y = Math.max(0, Math.min(y, HUD_VISIBLE_BOTTOM - h));
     let x = r.x + Math.floor((r.w - w) / 2);
-    if (target === 'hud' && where !== 'top') {
+    if (target === 'hud' && !inRoom && where !== 'top') {
         // at the right edge of what the HUD shows (HUD_RIGHT_GAP in), away from the car arrow in the middle;
         // never left of HUD_SPEED_CLEAR (the speed readout)
         x = Math.max(HUD_SPEED_CLEAR, hudRight - HUD_RIGHT_GAP - w);
@@ -311,11 +321,29 @@ function startOverlay(ctx, lv, opts) {
     // 'map': on the display the Waze map is on, while it shows; 'hud': on the HUD whenever there is something to show
     const onHud = () => settings.get('show') === 'hud';
     /** Where the badge goes now: { target, pct } (the map's place it sits in), null for nowhere. */
+    const Y = opts.yielding || yielding;
     const place = () => {
         // (the HUD size chosen in Waze on cluster, even while its map is on the cluster: the panel stays put)
-        if (onHud()) return { target: 'hud', pct: map.pct, hx: map.hx, hy: map.hy };
-        return map.showing ? { target: map.target, pct: map.pct, hx: map.hx, hy: map.hy } : null;
+        if (onHud()) {
+            // x3-hybride: under a HUD Widgets layout the panel goes in the room the layout leaves (null: none, not over the readouts)
+            const room = Y.hudPanel(now());
+            if (room === null) return null;
+            return Object.assign({ target: 'hud', pct: map.pct, hx: map.hx, hy: map.hy }, room ? { win: room, room: true } : {});
+        }
+        // x3-hybride: under a theme the panel keeps to the theme's open centre window (its pixels on the map's target)
+        const t = now(), win = Y.themeWindow(t);
+        if (map.showing) {
+            const pl = { target: map.target, pct: map.pct, hx: map.hx, hy: map.hy };
+            const w = win && (map.target === 'panel' ? win : map.target === 'map' ? Y.slotWindow(t) : null);
+            if (w && fits(map.target, w)) pl.win = w;
+            return pl;
+        }
+        // no Waze map: the panel alone in the window, unless Cluster Centre's pages are in it (they show the same values)
+        const sw = win && settings.get('show') === 'map' && !Y.pagesInWindow(t) ? Y.slotWindow(t) : null;
+        return sw && fits('map', sw) ? { target: 'map', pct: 0, hx: 0, hy: 0, win: sw, contend: true } : null;
     };
+    /** A window inside the target's scene, big enough for a panel. */
+    const fits = (target, w) => { const sc = SCENES[target]; return !!sc && w.x >= 0 && w.y >= 0 && w.x + w.w <= sc[0] && w.y + w.h <= sc[1] && w.w >= 160 && w.h >= 90; };
     let CR = opts.ClusterRender;
     let cr = null, ref = 0, geo = '', cv = null, last = null, visible = false, lastT = 0, lastKey = '';
     let map = { showing: false, target: null, pct: 0, hx: 0, hy: 0 }, statusText = '';
@@ -364,10 +392,10 @@ function startOverlay(ctx, lv, opts) {
         * (settings.get('nightDim') !== 'off' && lv.night && lv.night() ? NIGHT_DIM : 1);
     function layer(nExtras, hasPower) {
         const pl = place();
-        const r = pl && mapRect(pl.target, pl.pct, pl.hx, pl.hy);
+        const r = pl && (pl.win || mapRect(pl.target, pl.pct, pl.hx, pl.hy));
         if (!r) return 0;
-        const b = badgeRect(r, where(), pl.target, nExtras, hasPower, !!(lv.underOn && lv.underOn(pl.target)));
-        const key = [pl.target, b.x, b.y, b.w, b.h, b.ph].join(',');
+        const b = badgeRect(r, where(), pl.target, nExtras, hasPower, !!(lv.underOn && lv.underOn(pl.target)), pl.room === true);
+        const key = [pl.target, b.x, b.y, b.w, b.h, b.ph, pl.contend ? 'c' : ''].join(',');
         if (key === geo && ref) return ref;
         if (!client()) return 0;
         if (ref) cr.drop(ref);
@@ -377,7 +405,7 @@ function startOverlay(ctx, lv, opts) {
         cv = new Canvas(b.w, b.h);
         cv.ph = b.ph;
         opacity = pl.target === 'hud' ? hudOpacity() : 1;
-        ref = cr.image({ target: pl.target, klass: 'overlay', z: 10, x: b.x, y: b.y, w: b.w, h: b.h, iw: b.w, ih: b.h, visible: false, opacity });
+        ref = cr.image(Object.assign({ target: pl.target, klass: 'overlay', z: 10, x: b.x, y: b.y, w: b.w, h: b.h, iw: b.w, ih: b.h, visible: false, opacity }, pl.contend ? { contend: true } : {}));
         if (!ref) warnOnce('the renderer refused a ' + b.w + 'x' + b.h + ' layer');
         else log.info('map overlay: ' + b.w + 'x' + b.h + ' at ' + b.x + ',' + b.y + ' on ' + pl.target);
         return ref;
@@ -429,11 +457,16 @@ function startOverlay(ctx, lv, opts) {
         } catch (e) { watcher = null; }    // Waze on cluster not installed (no folder): polled until it is
     };
     const si = opts.setInterval || setInterval, ci = opts.clearInterval || clearInterval;
-    const poll = si(() => { watch(); readStatus(); }, POLL_MS);
+    // x3-hybride: under a theme, ask for its centre window while the panel is meant for the map's place (not on the HUD)
+    const askWindow = () => {
+        if (settings.get('show') === 'map' && Y.themeShowing(now())) Y.requestWindow('cluster_info', { kind: 'panel', showing: visible }, now());
+        else Y.withdrawWindow('cluster_info');
+    };
+    const poll = si(() => { watch(); readStatus(); askWindow(); }, POLL_MS);
     const draw = si(() => { if (where() !== 'off' && place()) { lv.keepFast(); tick(); } else hide(); }, FRAME_MS);
     watch();
     readStatus();
-    process.on('exit', () => { hide(); });
+    process.on('exit', () => { hide(); Y.withdrawWindow('cluster_info'); });
 
     /* ---------- turn signals on the HUD ----------
      * lv.indicator(): 'off' | 'left' | 'right' | 'both' (hazards), from the car's light module. The two arrows
@@ -487,11 +520,12 @@ function startOverlay(ctx, lv, opts) {
         shown: () => visible,
         /** The Waze map as status.json says: { showing, target, pct }. */
         map: () => Object.assign({}, map),
-        stop() { ci(poll); ci(draw); ci(arrowTimer); if (watcher) watcher.close(); hide(); hideArrows(); if (cr) cr.close(); },
+        stop() { ci(poll); ci(draw); ci(arrowTimer); if (watcher) watcher.close(); hide(); hideArrows(); Y.withdrawWindow('cluster_info'); if (cr) cr.close(); },
         /** For the diagnostics: the renderer link and the Waze map as status.json says. */
         status: () => ({
             renderer: cr ? (cr.ready ? 'connected' : 'connecting') : 'not needed yet',
-            map: map.showing ? 'showing on ' + map.target + (map.target === 'hud' ? ' (' + (map.pct || 'standard') + (map.pct ? ' %' : '') + ')' : '') : statusText ? 'not showing' : 'no Waze on cluster status',
+            map: (map.showing ? 'showing on ' + map.target + (map.target === 'hud' ? ' (' + (map.pct || 'standard') + (map.pct ? ' %' : '') + ')' : '') : statusText ? 'not showing' : 'no Waze on cluster status')
+                + (Y.themeWindow(now()) ? '; in the theme\'s centre window' : ''),
         }),
         /** The turn signal arrows: { shown, phase } (phase true: lit). */
         arrows: () => ({ shown: arrowsShown, phase: lastPhase, refs: Object.assign({}, arrows) }),

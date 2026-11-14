@@ -217,15 +217,19 @@
       "key": "yieldThemes",
       "label": "When a Cluster Themes theme shows",
       "type": "choice",
-      "default": "on",
+      "default": "window",
       "options": [
+        [
+          "window",
+          "In the theme's centre window (the Waze map's size)"
+        ],
         [
           "on",
           "Step aside (the theme covers the panel)"
         ],
         [
           "off",
-          "Draw anyway"
+          "Draw anyway (hidden under the theme)"
         ]
       ]
     },

@@ -185,7 +185,7 @@ class Page {
             const p = this.hud.placeInfo();
             return (p.x || p.y ? 'moved' : 'centred') + ' · ' + Math.round(p.scale * 100) + ' %';
         }
-        if (id === 'map') return this.get('mapInTheme') ? 'Waze map · on' : 'Waze map · off';
+        if (id === 'map') return (this.get('mapInTheme') ? 'Waze map · on' : 'Waze map · off') + (this.get('centreWindow') === false ? ' · centre off' : '');
         if (id === 'badge') return badges.text(this.get('badge'), this.get('badgeBMW') === true) || 'none';
         if (id === 'alerts') { const n = WARN_KEYS.filter((k) => this.get(k) > 0).length; return n ? n + ' warning' + (n > 1 ? 's' : '') + ' on' : 'warnings off'; }
         if (id === 'gmeter') return this.optLabel('gRange', this.get('gRange')) + ' · trail ' + this.optLabel('gTrail', this.get('gTrail')).toLowerCase();
@@ -404,6 +404,10 @@ class Page {
         cv.circle(CX + 26, y + 23, 7, info.up ? C.live : info.ok ? C.dim : '#e0a340');
         cv.text(text, CX + 46, y + 30, 18, info.up ? C.live : C.text, { literal: true });
         y += 54;
+        y = this.toggleRow(cv, CX, y, w, 'Centre window for Cluster Centre / Cluster Info', 'centreWindow');
+        const ci = this.hud.windowOpen ? 'Window open: Cluster Centre / Cluster Info draw in it' : this.hud.ci && this.hud.ci.wantsWindow() ? 'Asked for, opening' : 'Closed (nothing asks for it)';
+        note(cv, CX, y + 14, [ci + '. It is the same window Waze\'s map shows in (GT3, Sport and M).']);
+        y += 40;
         note(cv, CX, y + 26, [
             'On: GT3, Sport and M open a window in the middle and Waze on Cluster draws its map in it, above',
             'BMW\'s own map view, so nothing shows twice. When the map goes away the theme fills back in.',

@@ -216,6 +216,7 @@ const Car = require('./kit/car');
 const Waze = require('./waze');
 const Screen = require('./screen');
 const { ClusterInfo } = require('./cluster_info');
+const { freeRect } = require('./free_rect');
 const badges = require('./badges');
 const Runs = require('./runs');
 const tz = require('./tz');
@@ -305,6 +306,7 @@ const HV_SOC = { ecu: 0x07, did: 'DDBC', bytes: 2, at: 0, factor: 0.1, offset: 0
 const FUEL_OBD = { obd: '2F', bytes: 1, at: 0, factor: 100 / 255, offset: 0, min: 0, max: 100, timeoutMs: 1000 };
 const FUEL_EVERY_MS = 10000, FUEL_RETRY_MS = 300000, FUEL_STALE_MS = 60000;
 const HV_EVERY_MS = 5000, HV_RETRY_MS = 60000, HV_STALE_MS = 20000;
+const WINDOW_HOLD_MS = 6000;            // the centre window stays open this long after the last app that asked for it stopped asking
 const CAR_ERANGE_MS = 10 * 60 * 1000;   // the car's own electric range counts for this long after it last said (it changes slowly)
 // BMW's speed scale: even steps to 120 mph (180 km/h), then wider ones to 200 mph (320 km/h)
 const SPEED_SCALE = { us: [0, 20, 40, 60, 80, 100, 120, 160, 200], metric: [0, 30, 60, 90, 120, 150, 180, 250, 320] };
@@ -495,6 +497,12 @@ class HudApp {
             if (this.mapLayout && this.setting('mapUp') !== this.mapShown) this._rebuild(); else this._status();
         })) : null;
         this.mapShown = false;           // "mapUp" when the layout was built
+        // the centre window opened for Cluster Centre / Cluster Info (cluster_info.js): the same window the Waze map
+        // shows in, see-through while one of them asks for it (setting centreWindow); windowRect is the active
+        // layout's, on the panel
+        this.windowOpen = false;
+        this.windowAskAt = 0;
+        this.windowRect = null;
         // the screen shared with the other app (screen.js): stepping aside while the driver gave it to the other one
         this.screen = new Screen(this.target === 'panel' ? 'cluster' : 'hud', ctx.dataDir, this.log,
             () => !!(this.started && this.activeName && this.activeName !== 'off'), () => this._guard('screen', () => this._rebuild()),
@@ -636,8 +644,9 @@ class HudApp {
 
     /** A setting's value, or its default when the saved value isn't one the schema allows. */
     setting(key) {
-        // "mapUp": not saved, the Waze map is showing inside the theme now (the setting on, waze.js says so)
-        if (key === 'mapUp') return !!(this.waze && this.waze.up && this.ctx.settings.get('mapInTheme') === true);
+        // "mapUp": not saved, the centre window is open now: the Waze map shows inside the theme (the setting on, waze.js
+        // says so), or Cluster Centre / Cluster Info asked for the window (centreWindow)
+        if (key === 'mapUp') return !!((this.waze && this.waze.up && this.ctx.settings.get('mapInTheme') === true) || this.windowOpen === true);
         const s = this.ctx.settings.item(key);
         const v = this.ctx.settings.get(key);
         if (!s) return v;
@@ -844,9 +853,47 @@ class HudApp {
      * another app), and say on the panel when a theme covers it (Cluster Centre waits then).
      */
     _shareWithClusterInfo() {
-        const ownFresh = isNum(this.hvSoc) && Date.now() - this.hvSocAt < HV_STALE_MS;
+        const now = Date.now();
+        const ownFresh = isNum(this.hvSoc) && now - this.hvSocAt < HV_STALE_MS;
         this.ci.publish(ownFresh && !this.car.data().demo ? this.hvSoc : null);
-        this.ci.markTheme(this.target === 'panel' && this.started && !!this.activeName && this.activeName !== 'off' && !this.screen.yielded);
+        const shows = this.target === 'panel' && this.started && !!this.activeName && this.activeName !== 'off' && !this.screen.yielded;
+        // the centre window: open while Cluster Centre / Cluster Info ask for it (and for a few seconds after), if this
+        // theme has one and the setting allows; the layout is rebuilt with the window cut or filled
+        const allowed = shows && !!this.windowRect && this.setting('centreWindow') !== false;
+        if (allowed && this.ci.wantsWindow()) this.windowAskAt = now;
+        const open = allowed && now - this.windowAskAt < WINDOW_HOLD_MS;
+        if (open !== this.windowOpen) {
+            this.windowOpen = open;
+            this.log.info('centre window ' + (open ? 'open: Cluster Centre / Cluster Info draw in it' : 'closed'));
+            if (this.mapLayout && this.setting('mapUp') !== this.mapShown) this._rebuild(); else this._status();
+        }
+        this.ci.markTheme(shows, { window: shows ? this.windowRect : null, open: this.setting('mapUp') === true && this.mapShown === true });
+        // on the HUD: where the layout shown leaves room for Cluster Info's panel (it would sit on the readouts otherwise)
+        if (this.target === 'hud') this.ci.markLayout(this.started && !!this.activeName && this.activeName !== 'off' && !this.claimBy, this._panelRoom());
+    }
+
+    /**
+     * The room the HUD layout shown leaves for Cluster Info's panel, on the HUD's own pixels (the layout's move and
+     * scale applied): the biggest empty rectangle in what the windshield shows, round the readouts that are on and BMW's
+     * own speed. null when there is none.
+     */
+    _panelRoom() {
+        if (!this.shown || !this.placed.length) return null;
+        const off = this._offset(), sc = this._scale(), b = this._placedBox(), cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+        const used = this.shown.filter((w) => isNum(w.x) && isNum(w.y) && isNum(w.w) && isNum(w.h)).map((w) => ({
+            x: cx + (w.x - cx) * sc + off.x, y: cy + (w.y - cy) * sc + off.y, w: w.w * sc, h: w.h * sc,
+        }));
+        const B = visible.HUD_BMW;           // BMW's own speed (and the Sport rev band), bottom left
+        used.push({ x: B[0], y: B[1], w: B[2] - B[0], h: B[3] - B[1] });
+        return freeRect(used, visible.HUD_WINDOW);
+    }
+
+    /** The map window of a layout on the panel, as the see-through hole leaves it: { x, y, w, h }, or null without one. */
+    _windowRectOf(layout) {
+        const w = layout.widgets.find((x) => x.holeWhen === 'mapUp' && Array.isArray(x.hole) && x.hole.length === 4 && x.hole.every(isNum));
+        if (!w) return null;
+        const inset = isNum(w.holeInset) ? w.holeInset : 6;
+        return { x: w.hole[0] + inset, y: w.hole[1] + inset, w: Math.max(0, w.hole[2] - 2 * inset), h: Math.max(0, w.hole[3] - 2 * inset) };
     }
 
     /** Boost, intake, fuel % and hybrid battery from the car's units (config.dme), over the read-only link. */
@@ -918,7 +965,7 @@ class HudApp {
         clearInterval(this.statusTimer);
         clearInterval(this.dmeTimer);
         clearInterval(this.ciTimer);
-        try { this.ci.markTheme(false); this.ci.stop(); } catch (e) { /* exiting anyway */ }
+        try { this.ci.markTheme(false); this.ci.markLayout(false); this.ci.stop(); } catch (e) { /* exiting anyway */ }
         clearInterval(this.claimTimer);
         clearTimeout(this.statusAskT);
         this.stallTimers.forEach((t) => clearTimeout(t)); this.stallTimers.clear();
@@ -1589,6 +1636,7 @@ class HudApp {
         const name = this._layoutName();
         this.activeName = name;
         this.mapLayout = false;
+        this.windowRect = null;
         this.mapShown = this.setting('mapUp');
         if (name === 'off') {
             this._wazeWant();
@@ -1605,6 +1653,10 @@ class HudApp {
         }
         this.problem = null;
         this.mapLayout = layout.widgets.some((w) => w.holeWhen === 'mapUp');
+        this.windowRect = this._windowRectOf(layout);
+        // (a layout without a window can't have it open for Cluster Centre; the map flag is re-read for this layout)
+        if (this.windowOpen && !this.windowRect) this.windowOpen = false;
+        this.mapShown = this.setting('mapUp');
         this._wazeWant();
         this.layoutSlots = layout.slots || [];
         this.layoutTheme = layout.theme && THEMES[layout.theme] ? layout.theme : null;

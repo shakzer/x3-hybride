@@ -96,7 +96,9 @@ class FakeCR extends EventEmitter {
     const lv = { power: () => (kw === null ? null : pw(kw)), limits: () => ({ outMax: 100, inMax: 60 }), keepFast: () => { fast++; }, indicator: () => ind, night: () => night, extras: () => extras };
     let night = false, extras = [];
     const wait = (ms) => new Promise((r) => setTimeout(r, ms || 30));
-    const ov = startOverlay({ settings, log, theme: () => theme }, lv, { statusPath: status, ClusterRender: FakeCR, now: () => t, setInterval: () => 0, clearInterval: () => {} });
+    // (x3-hybride: no Cluster Themes theme here, whatever runs on this machine)
+    const noTheme = { themeShowing: () => false, themeWindow: () => null, slotWindow: () => null, pagesInWindow: () => false, hudPanel: () => undefined, requestWindow() {}, withdrawWindow() {} };
+    const ov = startOverlay({ settings, log, theme: () => theme }, lv, { statusPath: status, ClusterRender: FakeCR, now: () => t, setInterval: () => 0, clearInterval: () => {}, yielding: noTheme });
     const step = async () => { ov._read(); await wait(); };
 
     await step();
@@ -318,6 +320,141 @@ check('the thin kW bar: in a strip above the panel, the panel where it was, the 
     }
     assert.strictEqual(panelDiff, 0, 'the panel moved or drawn over'); assert(inStrip > 50, 'the bar drawn above it: ' + inStrip);
 });
+
+/* ---------- x3-hybride: inside a Cluster Themes theme's centre window (M: 510x275 at 705,165 on the panel, inset 6) ---------- */
+const M_WIN = { x: 711, y: 171, w: 498, h: 263 }, S_WIN = { x: 534, y: 130, w: 852, h: 460 };   // on the panel
+const slot = (w) => ({ x: w.x - 416, y: w.y - 120, w: w.w, h: w.h });
+check('a narrow window (M\'s): the panel is made smaller until it fits, inside the window at its bottom', () => {
+    const r = slot(M_WIN), b = badgeRect(r, 'bottom', 'map', 2, true);
+    assert(b.w <= r.w - 8 && b.x >= r.x && b.x + b.w <= r.x + r.w, JSON.stringify(b));
+    assert(b.y >= r.y && b.y + b.h <= r.y + r.h, JSON.stringify(b));
+    assert(b.h >= 40, 'still readable: ' + b.h);
+});
+check('the same window at the top: inside it, above the bottom one', () => {
+    const r = slot(M_WIN), top = badgeRect(r, 'top', 'map', 2, true), bot = badgeRect(r, 'bottom', 'map', 2, true);
+    assert(top.y >= r.y && top.y < bot.y && top.y + top.h <= r.y + r.h, JSON.stringify([top, bot]));
+});
+check('a wide window (Sport\'s): the panel as on the whole map', () => {
+    const r = slot(S_WIN), b = badgeRect(r, 'bottom', 'map', 2, true);
+    assert.strictEqual(b.h, badgeRect(mapRect('map', 0), 'bottom', 'map', 2, true).h);
+    assert(b.x >= r.x && b.x + b.w <= r.x + r.w && b.y + b.h <= r.y + r.h, JSON.stringify(b));
+});
+{
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'woc-win-'));
+    const status = path.join(dir, 'status.json');
+    const write = (o) => { fs.writeFileSync(status + '.tmp', JSON.stringify(o)); fs.renameSync(status + '.tmp', status); };
+    const settings = { v: { show: 'map', place: 'bottom', bar: 'on' }, get(k) { return this.v[k]; } };
+    const log = { info() {}, warn() {} };
+    let t = 2e6, win = null, pages = false, themeUp = true;
+    const asks = [];
+    const Y = {
+        themeShowing: () => themeUp, themeWindow: () => win, pagesInWindow: () => pages, hudPanel: () => undefined,
+        slotWindow: () => (win ? slot(win) : null),
+        requestWindow: (app, extra) => asks.push([app, extra]), withdrawWindow: (app) => asks.push([app, null]),
+    };
+    const lv = { power: () => ({ kw: 12, text: '12', col: '#fff' }), limits: () => ({ outMax: 100, inMax: 60 }), keepFast() {}, indicator: () => 'off', night: () => false, extras: () => [{ label: 'OIL', text: '88\u00b0' }, { label: 'COOL', text: '90\u00b0' }] };
+    let poll = null;      // (the 1 s poll: the status read and the ask for the window)
+    const ov = startOverlay({ settings, log, theme: () => theme }, lv, { statusPath: status, ClusterRender: FakeCR, now: () => t, setInterval: (fn, ms) => { if (ms === 1000) poll = fn; return 0; }, clearInterval: () => {}, yielding: Y });
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms || 30));
+    const step = async () => { ov._read(); await wait(); t += 300; ov._tick(); };
+    const layer = () => [...FakeCR.last.layers.values()].find((l) => l.klass === 'overlay' && l.visible);
+
+    write({ state: 'idle', target: 'map', hud_width_pct: 0 });
+    await step();
+    check('a theme shows but its window is closed, no Waze: nothing drawn', () => assert(!ov.shown()));
+
+    win = M_WIN;
+    await step();
+    check('the window open, no Waze map: the panel alone in it, on the map\'s slot, taking the slot (contend)', () => {
+        const l = layer(), r = slot(M_WIN);
+        assert(l && l.target === 'map' && l.contend === true, JSON.stringify(l));
+        assert(l.x >= r.x && l.y >= r.y && l.x + l.w <= r.x + r.w && l.y + l.h <= r.y + r.h, JSON.stringify([l, r]));
+    });
+    pages = true; await step();
+    check('Cluster Centre\'s pages in the window: the panel steps aside (the pages show the same values)', () => assert(!ov.shown()));
+    pages = false;
+
+    write({ state: 'showing', target: 'map', cluster: 1, hud: 0, hud_width_pct: 0 });
+    await step();
+    check('Waze showing on the map slot, window open: the panel inside the window, not at the map\'s bottom edge', () => {
+        const l = layer(), r = slot(M_WIN);
+        assert(l && l.target === 'map' && !l.contend, JSON.stringify(l));
+        assert(l.y + l.h <= r.y + r.h && l.x >= r.x && l.x + l.w <= r.x + r.w, JSON.stringify([l, r]));
+    });
+    write({ state: 'showing', target: 'panel', cluster: 1, hud: 0, hud_width_pct: 0 });
+    await step();
+    check('Waze inside the theme (on the panel): the panel inside the window, in panel pixels', () => {
+        const l = layer();
+        assert(l && l.target === 'panel', JSON.stringify(l));
+        assert(l.x >= M_WIN.x && l.y >= M_WIN.y && l.x + l.w <= M_WIN.x + M_WIN.w && l.y + l.h <= M_WIN.y + M_WIN.h, JSON.stringify(l));
+    });
+    win = S_WIN; await step();
+    check('another theme (Sport): the panel moves with the window', () => {
+        const l = layer();
+        assert(l && l.x >= S_WIN.x && l.x + l.w <= S_WIN.x + S_WIN.w && l.y + l.h <= S_WIN.y + S_WIN.h, JSON.stringify(l));
+    });
+    win = null; await step();
+    check('the window closed with Waze still showing: back to the map\'s own rectangle', () => {
+        const l = layer(), r = mapRect('panel', 0);
+        assert(l && l.target === 'panel' && l.y + l.h <= r.y + r.h && l.y > r.y + r.h - 140, JSON.stringify(l));
+    });
+    check('while a theme shows and the panel is for the map, it asks for the window', () => {
+        asks.length = 0; poll();
+        const a = asks.filter((x) => x[0] === 'cluster_info').pop();
+        assert(a && a[1] && a[1].kind === 'panel' && typeof a[1].showing === 'boolean', JSON.stringify(asks));
+        assert(/in the theme's centre window/.test(ov.status().map) === false, 'closed now: not said');
+    });
+    check('no theme, or the panel on the HUD: it stops asking', () => {
+        themeUp = false; asks.length = 0; poll();
+        assert.deepStrictEqual(asks.pop(), ['cluster_info', null]);
+        themeUp = true; settings.v.show = 'hud'; asks.length = 0; poll();
+        assert.deepStrictEqual(asks.pop(), ['cluster_info', null]);
+    });
+    win = M_WIN; settings.v.show = 'map';
+    check('the status line says so while the window is open', () => assert(/in the theme's centre window/.test(ov.status().map)));
+    ov.stop();
+}
+{
+    // x3-hybride: "Always on the HUD" under HUD Widgets: the panel goes in the room the layout leaves, or nowhere
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'woc-room-'));
+    const status = path.join(dir, 'status.json');
+    const write = (o) => { fs.writeFileSync(status + '.tmp', JSON.stringify(o)); fs.renameSync(status + '.tmp', status); };
+    const settings = { v: { show: 'hud', place: 'bottom', bar: 'on' }, get(k) { return this.v[k]; } };
+    const log = { info() {}, warn() {} };
+    let t = 3e6, room;
+    const Y = { themeShowing: () => false, themeWindow: () => null, pagesInWindow: () => false, slotWindow: () => null, hudPanel: () => room, requestWindow() {}, withdrawWindow() {} };
+    const lv = { power: () => ({ kw: 12, text: '12', col: '#fff' }), limits: () => ({ outMax: 100, inMax: 60 }), keepFast() {}, indicator: () => 'off', night: () => false, extras: () => [{ label: 'OIL', text: '88\u00b0' }, { label: 'COOL', text: '90\u00b0' }] };
+    const ov = startOverlay({ settings, log, theme: () => theme }, lv, { statusPath: status, ClusterRender: FakeCR, now: () => t, setInterval: () => 0, clearInterval: () => {}, yielding: Y });
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms || 30));
+    const step = async () => { ov._read(); await wait(); t += 300; ov._tick(); };
+    const layer = () => [...FakeCR.last.layers.values()].find((l) => l.klass === 'overlay' && l.visible);
+    write({ state: 'idle', target: 'map', hud_width_pct: 0 });
+
+    room = { x: 356, y: 188, w: 324, h: 120 };
+    await step();
+    check('HUD layout room: the panel is drawn on the HUD, inside the room, 60 high at most', () => {
+        const l = layer();
+        assert(l && l.target === 'hud', JSON.stringify(l));
+        assert(l.x >= room.x && l.y >= room.y && l.x + l.w <= room.x + room.w && l.y + l.h <= room.y + room.h, JSON.stringify([l, room]));
+        assert(l.h <= 60, 'height ' + l.h);
+    });
+    room = { x: 356, y: 336, w: 324, h: 44 };
+    await step();
+    check('a low, narrow room (44 high): the panel shrinks to fit it, no further than it', () => {
+        const l = layer();
+        assert(l && l.y >= room.y && l.y + l.h <= room.y + room.h && l.x >= room.x && l.x + l.w <= room.x + room.w, JSON.stringify([l, room]));
+    });
+    room = null;
+    await step();
+    check('the layout leaves no room: nothing drawn, so nothing is covered', () => assert(!ov.shown() && !layer()));
+    room = undefined;
+    await step();
+    check('no HUD Widgets layout: the panel where it always was, on the HUD', () => {
+        const l = layer();
+        assert(l && l.target === 'hud', JSON.stringify(l));
+    });
+    ov.stop();
+}
 console.log(ok + ' checks passed');
 })().catch((e) => { console.error(e); process.exit(1); });
 

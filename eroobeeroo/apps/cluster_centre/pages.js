@@ -327,9 +327,13 @@ function pieces(o) {
         list.push(icon('coolIcon', null, BOX.x + BOX.w - 92, 36, 20, 5, (t, d) => (on(d) ? t.yellow : t.bgBottom)));
         list.push(text('coolBadge', null, BOX.x + BOX.w - 70, 30, 70, 32, (d) => (on(d) ? mmss(d.cool.seconds) : ''), (t, d) => ({ color: [t.yellow, on(d) ? 1 : 0], glow: [t.yellow, on(d) ? 0.4 : 0] }), { align: 1 }));
     }
-    const fit = FITS[o.fit] || FITS.clear;
+    // x3-hybride: in a Cluster Themes window (main.js) the page is shrunk to the window: o.fitBox { k, cx, cy }
+    const fit = o.fitBox && typeof o.fitBox.k === 'number' ? o.fitBox : FITS[o.fit] || FITS.clear;
     // the free/open-source credit is shown on the app's own screen (main.js), not drawn on the cluster glass
-    return list.filter(Boolean).map((p) => (p.key === 'bg' || fit.k === 1 ? p : scaled(p, fit))).map(legible);
+    // (in a theme's window the small print is allowed a little smaller: grown to 20 px it would run out of the window)
+    const minText = o.fitBox ? MIN_TEXT_WINDOW : MIN_TEXT;
+    const win = o.fitBox && o.fitBox.win;
+    return list.filter(Boolean).map((p) => (p.key === 'bg' || fit.k === 1 ? p : scaled(p, fit))).map((p) => legible(p, minText)).map((p) => (win ? inside(p, win) : p));
 }
 
 /*
@@ -337,16 +341,24 @@ function pieces(o) {
  * 'Power %') stands about 20 px. Smaller text is grown to it about its centre line, its box widened from the
  * side it is aligned to, so it isn't clipped.
  */
-const MIN_TEXT = 20;
-function legible(p) {
-    if (p.kind !== 'text' || p.h >= MIN_TEXT) return p;
+const MIN_TEXT = 20, MIN_TEXT_WINDOW = 16;
+/** A text box that still runs out of the theme's window (win, in the slot's pixels) trimmed to it (a few px at most). */
+function inside(p, win) {
+    if (p.kind !== 'text') return p;
+    const x = Math.max(win.x, p.x), r = Math.min(win.x + win.w, p.x + p.w);
+    if (x === p.x && r === p.x + p.w) return p;
+    return Object.assign({}, p, { x: Math.round(x * 100) / 100, w: Math.round(Math.max(1, r - x) * 100) / 100 });
+}
+function legible(p, min) {
+    min = min || MIN_TEXT;
+    if (p.kind !== 'text' || p.h >= min) return p;
     // the factory's small print isn't spaced out: tracking down to 0.04, then the box only as wide as the
     // text needs (a fixed text's width estimated, ~0.55 of the height a letter)
     const tr = Math.min(p.tracking || 0, 0.04), a = p.align === undefined ? 0.5 : p.align;
     // (a changing text keeps its box: they are laid out wide enough)
-    const need = typeof p.text === 'string' ? p.text.length * MIN_TEXT * (0.55 + tr) : p.w;
+    const need = typeof p.text === 'string' ? p.text.length * min * (0.55 + tr) : p.w;
     const w = Math.min(W, Math.max(p.w, need)), x = Math.max(0, Math.min(W - w, p.x - (w - p.w) * a));
-    return Object.assign({}, p, { tracking: tr, y: Math.round((p.y - (MIN_TEXT - p.h) / 2) * 100) / 100, h: MIN_TEXT,
+    return Object.assign({}, p, { tracking: tr, y: Math.round((p.y - (min - p.h) / 2) * 100) / 100, h: min,
         x: Math.round(x * 100) / 100, w: Math.round(w * 100) / 100 });
 }
 

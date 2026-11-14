@@ -21,7 +21,7 @@ const { startCluster } = require('./engine');
 const { startData } = require('./data');
 const presence = require('./presence');
 const yielding = require('./yield');
-const { PAGES, pieces, palette, W: SW, H: SH } = require('./pages');
+const { PAGES, pieces, palette, BOX, W: SW, H: SH } = require('./pages');
 const { WarmUp, CoolDown, PerfTimer } = require('./features');
 const { drawPieces } = require('./cpu_preview');
 const { findSignals } = require('./signal_finder');
@@ -100,10 +100,26 @@ mgu.run({
         // x3-hybride: the centre has one owner. Waze's map (Waze on cluster) and a Cluster Themes theme take it; the pages
         // come back by themselves when they go (settings: yieldWaze, yieldThemes)
         const blockedByWaze = () => settings.get('yieldWaze') !== 'off' && yielding.wazeShowing();
-        const blockedByTheme = () => settings.get('yieldThemes') !== 'off' && yielding.themeShowing();
+        // a theme covers the panel. 'window' (default): the pages go in the theme's centre window (the Waze map's place and
+        // size) once it is open, and wait until then; 'on': step aside; 'off': draw anyway (under the theme)
+        const themeMode = () => { const v = settings.get('yieldThemes'); return v === 'off' || v === 'on' ? v : 'window'; };
+        const blockedByTheme = () => {
+            const m = themeMode();
+            if (m === 'off' || !yielding.themeShowing()) return false;
+            return m === 'on' || !yielding.themeWindow();
+        };
         const blocked = () => blockedByLayout() || blockedByWaze() || blockedByTheme();
+        // the pages shrunk to the theme's window (the centre slot's own pixels), null outside a window
+        const WIN_FILL = 0.97;
+        const fitBox = () => {
+            if (themeMode() !== 'window') return null;
+            const w = yielding.slotWindow();
+            if (!w) return null;
+            const k = Math.round(Math.min(1, WIN_FILL * w.w / BOX.w, WIN_FILL * w.h / BOX.h) * 1000) / 1000;
+            return { k, cx: Math.round((w.x + w.w / 2) * 10) / 10, cy: Math.round((w.y + w.h / 2) * 10) / 10, win: w };
+        };
         const options = () => ({
-            look: settings.get('look'), fit: settings.get('fit'), pages: enabled(), style: settings.get('style'), accent: settings.get('accent'), size: settings.get('size'),
+            look: settings.get('look'), fit: settings.get('fit'), fitBox: fitBox(), pages: enabled(), style: settings.get('style'), accent: settings.get('accent'), size: settings.get('size'),
             units: { temp: settings.get('tempUnit'), press: settings.get('pressUnit'), speed: settings.get('speedUnit'), torque: settings.get('torqueUnit') },
             warn: { oilHigh: num('oilHigh'), coolantHigh: num('coolantHigh'), iatHigh: num('iatHigh'), gearboxHigh: num('gearboxHigh'), battTempHigh: num('battTempHigh'), lpfpLow: num('lpfpLow') },
             shift: { on: settings.get('shift') !== 'off', from: num('shiftFrom', 4000), at: num('shiftAt', 6200) },
@@ -126,6 +142,17 @@ mgu.run({
             sweep: () => false,
             group: page,
         });
+        // x3-hybride: ask the theme for its centre window while the pages are wanted (shown or waiting for it), say what
+        // is drawn in it (Cluster Info then keeps its panel off the pages), and fit the pages again when the window moves
+        let fitKey = JSON.stringify(fitBox());
+        setInterval(() => {
+            if (themeMode() === 'window' && showing() && page && !blockedByLayout() && yielding.themeShowing()) {
+                yielding.requestWindow('cluster_centre', { kind: 'pages', showing: !!cluster.status().shown });
+            } else yielding.withdrawWindow('cluster_centre');
+            const k = JSON.stringify(fitBox());
+            if (k !== fitKey) { fitKey = k; if (page) rebuild(); }
+        }, 500);
+        process.on('exit', () => yielding.withdrawWindow('cluster_centre'));
         function goTo(id) {
             page = id; pageAt = Date.now();
             cluster.setGroup(id);
@@ -219,7 +246,7 @@ mgu.run({
             } else if (typeof cv.drawImage === 'function') cv.drawImage(sc.d, SW, SH, 24, 30, pw, ph);
             const st = cluster.status(), ds = data.status();
             const x = pw + 52, line = (i, a, b) => { cv.text(a, x, 60 + i * 50, 18, t.dim, { font: 'bold', literal: true }); cv.text(String(b).slice(0, 34), x, 84 + i * 50, 18, t.text, { font: 'label', literal: true }); };
-            line(0, 'In the cluster', !showing() ? 'off (stock map)' : st.shown ? 'showing' : blockedByLayout() ? 'waiting: a layout shows (set its centre to these pages)' : blockedByWaze() ? 'waiting: the Waze map shows' : blockedByTheme() ? 'waiting: a Cluster Themes theme shows' : 'waiting');
+            line(0, 'In the cluster', !showing() ? 'off (stock map)' : st.shown ? 'showing' : blockedByLayout() ? 'waiting: a layout shows (set its centre to these pages)' : blockedByWaze() ? 'waiting: the Waze map shows' : blockedByTheme() ? (themeMode() === 'window' ? 'waiting: the theme is opening its centre window' : 'waiting: a Cluster Themes theme shows') : yielding.themeWindow() ? 'waiting' : 'waiting');
             line(1, 'Page', page ? (list.indexOf(page) + 1) + ' of ' + list.length + ': ' + PAGES[page].title.toLowerCase() : 'none chosen');
             line(2, 'Next page', num('rotate', 0) ? 'every ' + num('rotate', 0) + ' s' : 'with Next page');
             line(3, 'Cluster renderer', st.renderer + ', centre ' + st.target + ', ' + st.layers + ' layers' + (st.refused ? ', refused: ' + st.refused : '') + '   ·   app ' + ((ctx.spec && ctx.spec.version) || ''));

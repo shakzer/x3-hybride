@@ -1,5 +1,17 @@
 # Modifications par rapport aux projets d'origine
 
+## 14 novembre 2026
+
+### bimmer/ (bimmer-lab/apps)
+- Cluster Themes : **fenêtre du centre pour Cluster Centre et Cluster Info** (GT3, M, Sport). Le thème l'ouvre quand une de ces apps la demande (`/dev/shm/cluster-themes/window-<app>.json`), publie son rectangle et son état dans `themes.json` (`window`, `open`) ; réglage « Centre window for Cluster Centre / Cluster Info » (onglet Map, activé par défaut). `shared/cluster_info.js`, `shared/hud.js`.
+- HUD Widgets : publie la zone libre de sa mise en page pour le panneau de Cluster Info (`hud-layout.json`, `shared/free_rect.js`).
+- Tests : `tools/test_cluster_info.js` (fenêtre, zone libre pour chaque mise en page du HUD).
+
+### eroobeeroo/ (eroobeeroo/idrive7-cluster-info)
+- Cluster Centre : dans la fenêtre d'un thème, les pages sont réduites à sa taille (`fitBox` dans `pages.js`, petits textes rognés à la fenêtre) ; réglage `yieldThemes` : fenêtre (par défaut) / retrait / afficher quand même ; demande la fenêtre au thème (`shared/yield.js`).
+- Cluster Info : réglage « Show the panel » sur le HUD par défaut ; dans la fenêtre d'un thème le panneau reste dans la fenêtre (sans Waze : seul, sauf si les pages de Cluster Centre y sont) ; sur le HUD, il se place dans la zone libre de la mise en page de HUD Widgets ; `apps/cluster_info/yield.js` (copie de `shared/yield.js`).
+- Tests : `tools/test_yield.js`, `tools/test_centre.js` (pages dans les fenêtres M et Sport), `kit/tools/test_cluster_info_overlay.js` (fenêtre, zone libre), `kit/tools/test_cluster_info.js` rendu indépendant d'un thème qui tourne.
+
 ## 13 novembre 2026
 
 ### bimmer/ (bimmer-lab/apps)

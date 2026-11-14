@@ -67,6 +67,17 @@ const opts = (extra) => Object.assign({ pages: Object.keys(PAGES), style: 'bar',
         if (p.colors) { const c = p.colors(t, d); Object.keys(c).forEach((k) => { const v = Array.isArray(c[k]) ? c[k][0] : c[k]; assert(/^#[0-9a-f]{6}$/i.test(v), p.key + '.' + k + ' ' + v); }); }
     });
 }));
+// x3-hybride: in a Cluster Themes window the pages are shrunk to it (main.js fitBox) and stay inside it
+[['M', { x: 711 - 416, y: 171 - 120, w: 498, h: 263 }], ['Sport', { x: 534 - 416, y: 130 - 120, w: 852, h: 460 }]].forEach(([name, w]) => check('pages in the ' + name + ' theme\'s window: every piece inside the window, the page shrunk to fit', () => {
+    const { BOX } = require(path.join(APP, 'pages'));
+    const k = Math.round(Math.min(1, 0.97 * w.w / BOX.w, 0.97 * w.h / BOX.h) * 1000) / 1000;
+    const ps = pieces(opts({ fitBox: { k, cx: w.x + w.w / 2, cy: w.y + w.h / 2, win: w } }));
+    assert(ps.length > 100);
+    ps.filter((p) => p.key !== 'bg').forEach((p) => {
+        assert(p.x >= w.x - 0.5 && p.y >= w.y - 0.5 && p.x + p.w <= w.x + w.w + 0.5 && p.y + p.h <= w.y + w.h + 0.5, p.key + ' ' + [p.x, p.y, p.w, p.h] + ' in ' + JSON.stringify(w));
+    });
+    if (name === 'M') assert(k < 0.7, 'M\'s window is small: ' + k); else assert.strictEqual(k, 1, 'Sport\'s window holds the page as designed');
+}));
 check('every reading has a view in each unit set', () => {
     const d = sample({ rpm: 3000 });
     Object.keys(READINGS).forEach((k) => [units, { temp: 'c', press: 'bar', speed: 'kmh', torque: 'nm' }].forEach((u) => {

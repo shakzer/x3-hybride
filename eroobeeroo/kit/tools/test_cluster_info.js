@@ -15,6 +15,7 @@ const ROOT = path.join(__dirname, '..', '..'), KIT = path.join(ROOT, 'kit', 'run
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ci-'));
 process.env.CLUSTER_INFO_DIR = path.join(tmp, 'cluster-info');
 process.env.WOC_STATUS = path.join(tmp, 'woc', 'status.json');
+process.env.CLUSTER_THEMES_FILE = path.join(tmp, 'cluster-themes', 'themes.json');   // (x3-hybride: no theme here, whatever runs on this machine)
 fs.mkdirSync(path.dirname(process.env.WOC_STATUS));
 fs.writeFileSync(process.env.WOC_STATUS, JSON.stringify({ state: 'showing', target: 'map', hud_width_pct: 0 }));
 
@@ -35,6 +36,7 @@ const check = (name, fn) => { fn(); ok++; console.log('ok   ' + name); };
 (async () => {
     const S = {};
     SPEC.settings.forEach((s) => { S[s.key] = s.default; });
+    S.show = 'map';      // (x3-hybride: the default is the HUD; this test is about the panel over the Waze map)
     const handlers = {}, warns = [], loops = {};
     const ctx = {
         app: {}, ui: { onClick() {}, text() {}, image: async () => {} },
@@ -53,7 +55,8 @@ const check = (name, fn) => { fn(); ok++; console.log('ok   ' + name); };
     check('the shared folder is made, open to every app (sticky)', () => assert((fs.statSync(dir).mode & 0o1777) === 0o1777));
     check('the panel is up over the map: wanted.json says what it shows', () => {
         const w = JSON.parse(fs.readFileSync(path.join(dir, 'wanted.json'), 'utf8'));
-        assert(w.power === true && w.values.indexOf('battery') >= 0 && w.values.indexOf('oil') >= 0, JSON.stringify(w));
+        // (x3-hybride: the defaults are the charge, oil and coolant: no kW meter among them)
+        assert(w.values.indexOf('soc') >= 0 && w.values.indexOf('oil') >= 0 && w.values.indexOf('coolant') >= 0, JSON.stringify(w));
     });
 
     // a provider beside it, as eDrive Live is on the car: it writes its file in the documented format

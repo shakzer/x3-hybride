@@ -27,6 +27,7 @@
     "badges.js",
     "screen.js",
     "cluster_info.js",
+    "free_rect.js",
     "runs.js",
     "tz.js"
   ],
@@ -339,6 +340,12 @@
       "label": "Show Waze map inside the theme",
       "type": "bool",
       "default": false
+    },
+    {
+      "key": "centreWindow",
+      "label": "Centre window for Cluster Centre / Cluster Info",
+      "type": "bool",
+      "default": true
     },
     {
       "key": "units",

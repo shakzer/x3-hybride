@@ -49,11 +49,11 @@
       "key": "show",
       "label": "Show the panel",
       "type": "choice",
-      "default": "map",
+      "default": "hud",
       "options": [
         [
           "map",
-          "Where the Waze map is"
+          "Where the Waze map is (in a Cluster Themes theme: its centre window)"
         ],
         [
           "hud",
@@ -409,5 +409,8 @@
   "requires": {
     "idrive7-renderd": "2.1.7",
     "mgu-inputgate": "1.0.0"
-  }
+  },
+  "shared": [
+    "yield.js"
+  ]
 }

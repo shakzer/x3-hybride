@@ -40,5 +40,44 @@ assert.strictEqual(theme({ at: now + 1000 - 500 }), true);
 assert.strictEqual(theme({ at: now + 1000 - 60000 }), false, 'old marker');
 assert.strictEqual(theme('nope'), false);
 
+// the theme's centre window: open and fresh, as the panel's rectangle, and as the centre slot's own pixels
+const win = (b) => ask(y.themeWindow, THEMES, b);
+const slotWin = (b) => ask(y.slotWindow, THEMES, b);
+const M = { x: 711, y: 171, w: 498, h: 263 };
+assert.strictEqual(win({ at: now + 1000 - 100, window: M, open: false }), null, 'closed: not usable');
+assert.deepStrictEqual(win({ at: now + 1000 - 100, window: M, open: true }), M, 'open');
+assert.strictEqual(win({ at: now + 1000 - 100, window: null, open: true }), null, 'a theme without a window');
+assert.strictEqual(win({ at: now + 1000 - 100, window: { x: 1, y: 2, w: 0, h: 5 }, open: true }), null, 'an empty window');
+assert.strictEqual(win({ at: now + 1000 - 100, window: { x: 'a', y: 2, w: 5, h: 5 }, open: true }), null, 'a window that is not numbers');
+assert.strictEqual(win({ at: now + 1000 - 60000, window: M, open: true }), null, 'an old marker: the theme went');
+assert.deepStrictEqual(slotWin({ at: now + 1000 - 100, window: M, open: true }), { x: 711 - 416, y: 171 - 120, w: 498, h: 263 }, 'the slot is 416,120 in the panel');
+assert.strictEqual(slotWin({ at: now + 1000 - 100, window: M, open: false }), null);
+
+// asking for it: window-<app>.json beside themes.json, at most once a second, and gone when withdrawn
+const f = path.join(dir, 'window-cluster_centre.json');
+const t0 = Date.now() + 10000;
+y.requestWindow('cluster_centre', { kind: 'pages', showing: false }, t0);
+let j = JSON.parse(fs.readFileSync(f, 'utf8'));
+assert(j.kind === 'pages' && j.showing === false && j.t === t0 && j.app === 'cluster_centre', JSON.stringify(j));
+y.requestWindow('cluster_centre', { kind: 'pages', showing: true }, t0 + 400);
+assert.strictEqual(JSON.parse(fs.readFileSync(f, 'utf8')).showing, false, 'not again within a second');
+y.requestWindow('cluster_centre', { kind: 'pages', showing: true }, t0 + 1100);
+assert.strictEqual(JSON.parse(fs.readFileSync(f, 'utf8')).showing, true);
+assert.strictEqual(y.pagesInWindow(t0 + 1200), true, 'pages showing in the window: Cluster Info steps aside');
+y.requestWindow('cluster_centre', { kind: 'pages', showing: false }, t0 + 2200);
+assert.strictEqual(y.pagesInWindow(t0 + 2300), false, 'asked for but not drawn yet');
+y.requestWindow('cluster_centre', { kind: 'pages', showing: true }, t0 + 3300);
+assert.strictEqual(y.pagesInWindow(t0 + 3400 + 5100), false, 'an old file: the app went');
+y.withdrawWindow('cluster_centre');
+assert(!fs.existsSync(f), 'withdrawn');
+y.withdrawWindow('cluster_centre');   // twice: nothing
+fs.writeFileSync(path.join(dir, 'window-cluster_info.json'), JSON.stringify({ t: t0 + 20000, kind: 'panel', showing: true }));
+assert.strictEqual(y.pagesInWindow(t0 + 20100), false, 'a panel is not pages');
+fs.writeFileSync(path.join(dir, 'window-broken.json'), '{"t":');
+assert.strictEqual(y.pagesInWindow(t0 + 21000), false, 'half-written: skipped');
+// without a folder to ask in (no theme ever ran): nothing is made, nothing throws
+const real = y.THEMES_DIR;
+assert.strictEqual(real, dir);
+
 try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* older Node */ }
-console.log('ok   yield: Waze map and Cluster Themes');
+console.log('ok   yield: Waze map, Cluster Themes and its centre window');
