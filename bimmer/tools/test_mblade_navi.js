@@ -64,6 +64,13 @@ NAMES.forEach((n) => {
         assert(h && h.holeWhen === 'mapUp' && h.hole.length === 4 && h.holeInset > 0);
         assert(L.widgets.some((w) => w.toggle === 'mapUp') && L.widgets.some((w) => w.toggle === '!mapUp'), 'no open / closed readouts');
     });
+    check(n + ': the window covers the middle of Waze\'s map (it is drawn at x 416..1504, y 120..600 and cannot be moved) and clears the black box', () => {
+        const h = L.widgets.find((w) => w.hole), i = h.holeInset || 6;
+        const win = { x: h.hole[0] + i, y: h.hole[1] + i, w: h.hole[2] - 2 * i, h: h.hole[3] - 2 * i };
+        assert(win.x <= 880 && win.x + win.w >= 1040, 'x 880..1040 (around the map\'s middle, x 960) is not in it');
+        assert(win.y <= 360 && win.y + win.h >= 456, 'the map\'s middle and lower middle (y 360..456) are not in it');
+        assert(!overlap(win, visible.BLACK_BOX) && !overlap(win, visible.BELT), 'under BMW\'s black box or belt light');
+    });
     check(n + ': no text, icon or emblem in BMW\'s black box or seat-belt light, none under the hood', () => {
         L.widgets.filter((w) => /^(text|icon|emblem|badge|atext)$/.test(w.type)).forEach((w) => {
             assert(!overlap(w, visible.BLACK_BOX), w.id + ' in the black box');

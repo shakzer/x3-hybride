@@ -49,7 +49,7 @@ The look of BMW's newer Live Cockpit Sport view.
 
 A blue M card on the left and one big red rev blade on the right (0 to 7000 rpm, with the marks around your redline), copied from a screenshot of a cluster style seen online. Added next to M and Sport, they are not replaced.
 
-- **Left:** a blue card with M-coloured stripes, the gear on a dark plate and the speed under it. With "Show Waze map inside the theme" or Cluster Centre on, the card opens a window in the middle and the gear and speed move to its bottom edge.
+- **Left:** a blue card with M-coloured stripes, the gear on a dark plate and the speed under it. With "Show Waze map inside the theme" or Cluster Centre on, the theme is rebuilt: the card shrinks to the left (with the gear and speed), the window opens in the middle over the map's centre, and the blade and its gauges move a little to the right. (Waze draws its map at a fixed place, the centre of the panel, so the window has to be there; it cannot sit on the card as in the screenshot.)
 - **Right:** the revs as the red blade, then two thin slanted gauges: the **hybrid battery** (in the place the photo has an oil gauge) with the electric range under it, and the **fuel** with the range under it. The battery charge is also written at the bottom right, the clock at the bottom left.
 - **Oil and outside temperature:** in the free space on the right, under BMW's black gear box.
 - **Top:** the shift light, which sits where BMW's own does. There is no ONE OF ONE lettering in this theme: centred under the shift light it ran into the card and the blade.
