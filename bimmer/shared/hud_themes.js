@@ -76,6 +76,29 @@ const THEMES = {
         ink: [12, 12, 14, 255], accent: [226, 36, 44, 255], well: [0, 0, 0, 255], redTrack: [90, 16, 20, 255],
         chrome: [182, 188, 198, 255], grey: [160, 166, 176, 255], grey2: [104, 110, 122, 255], faint: [96, 104, 118, 255],
     },
+    // M Blade (layout mblade.json, after a photo of a BMW M cluster view): a blue card with the M stripes, white numbers, a red
+    // rev blade. Extra roles: faint (small captions), bluegrey (the gauge numbers).
+    mblade: {
+        name: 'M Blade',
+        fg: [244, 247, 252, 255], dim: [170, 186, 214, 255], track: [70, 80, 100, 255], arc: [226, 36, 44, 255],
+        glow: 0, stripe: false,
+        bar: { low: [226, 36, 44], mid: [226, 36, 44], high: [255, 42, 42], midAt: 'shift' },
+        rev: { from: [226, 36, 44], to: [226, 36, 44] },
+        bg: [0, 0, 0, 255], panel: [0, 0, 0, 255], line: [150, 180, 255, 255], head: [226, 228, 232, 255],
+        ink: [12, 12, 14, 255], accent: [226, 36, 44, 255], well: [0, 0, 0, 255],
+        faint: [120, 138, 176, 255], bluegrey: [196, 210, 236, 255],
+    },
+    // Navi (layout navi.json, after a photo of a BMW map view): white on black, the speed band blue and violet. Extra roles: faint.
+    navi: {
+        name: 'Navi',
+        fg: [244, 247, 252, 255], dim: [168, 180, 208, 255], track: [70, 80, 100, 255], arc: [120, 150, 255, 255],
+        glow: 0, stripe: false,
+        bar: { low: [120, 150, 255], mid: [120, 150, 255], high: [255, 42, 42], midAt: 'shift' },
+        rev: { from: [120, 150, 255], to: [120, 150, 255] },
+        bg: [0, 0, 0, 255], panel: [0, 0, 0, 255], line: [196, 206, 240, 255], head: [226, 228, 232, 255],
+        ink: [12, 12, 14, 255], accent: [150, 120, 255, 255], well: [0, 0, 0, 255],
+        faint: [110, 124, 160, 255],
+    },
     // Minimal (layout minimal.json): white on black, nothing but the speed, the gear and a fuel line.
     minimal: {
         name: 'Minimal',

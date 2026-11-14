@@ -951,6 +951,258 @@ void main() {
 }
 `;
 
+const MBLADE = `// The M Blade theme in one cluster-render "effect" layer (GLSL ES 1.00), after a photo of a BMW M cluster view: a blue
+// card with the M tricolour (light blue and red stripes, blurred as on the photo), a few fine facet lines, a dark plate
+// for the gear and speed; a red rev blade leaning right (a light blue double line on its left edge, a bright red right
+// edge, ticks in from it every 1000 rpm, orange dashes before the redline); and two thin slanted gauge pairs (oil
+// temperature, fuel) to the right of it. The part of the blade under the rpm is bright red, the rest dark red, with a
+// white marker at the rpm. The card is cut see-through over the map window (u_hole). v_uv (0,0) is the top-left.
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+varying vec2 v_uv;
+uniform vec2 u_size;
+uniform vec4 u_cardA;     // card: left x, top y, bottom y, corner rounding px
+uniform vec4 u_cardB;     // card: x where the top edge ends, x and y of the right-hand point, x where the bottom edge starts
+uniform vec4 u_plate;     // gear plate: top y, bottom y, left x at the top, left x at the bottom
+uniform float u_plateR;   // the plate's right end x (0 = no plate)
+uniform vec4 u_s1;        // light blue stripe: x, y at the top end, x, y at the bottom end
+uniform vec4 u_s2;        // red stripe
+uniform vec2 u_sw;        // the two stripes' widths px
+uniform vec4 u_bl;        // blade: y of the top, y of the bottom (0 rpm), left edge x at the top, its slope (x per y px)
+uniform vec4 u_br;        // blade: right edge x at the top, its slope, x of the hook's left end, x of the baseline's left end
+uniform vec2 u_sc;        // y of the scale's top mark (max rpm), y of its 0 (the bottom)
+uniform vec4 u_g0;        // oil gauge: x, y of the top end, x, y of the bottom end
+uniform vec4 u_g1;        // fuel gauge
+uniform vec2 u_gv;        // the gauge levels 0..1
+uniform float u_ticks;    // marks: max rpm / 1000
+uniform float u_value;    // rpm 0..1
+uniform float u_orange;   // 0..1, orange dashes from here to the redline
+uniform float u_redFrom;  // 0..1
+uniform float u_shiftNow;
+uniform vec3 u_red;
+uniform vec4 u_hole;      // map window x, y, w, h, already inset (w 0 = none)
+uniform float u_holeR;
+
+float cov(float d) { return clamp(0.5 - d, 0.0, 1.0); }
+vec4 over(vec4 top, vec4 under) {
+    float a = top.a + under.a * (1.0 - top.a);
+    if (a <= 0.0) return vec4(0.0);
+    return vec4((top.rgb * top.a + under.rgb * under.a * (1.0 - top.a)) / a, a);
+}
+float segD(vec2 p, vec2 a, vec2 b) { vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h); }
+float smax(float a, float b, float k) { float h = clamp(0.5 + 0.5 * (a - b) / k, 0.0, 1.0); return mix(b, a, h) + k * h * (1.0 - h); }
+// a thin pair of slanted lines from the top end a to the bottom end b, the gap between them filled from the bottom up to v
+vec4 gauge(vec2 p, vec4 g, float v, vec3 fill, vec4 c) {
+    vec2 a = g.xy, b = g.zw;
+    float len = length(b - a);
+    vec2 u = (b - a) / len;
+    vec2 q = p - a;
+    float along = dot(q, u) / len;
+    float side = dot(q, vec2(u.y, -u.x));
+    if (along < -0.03 || along > 1.03 || abs(side) > 12.0) return c;
+    float body = cov(abs(side) - 6.0) * cov(abs(along - 0.5) * len - len * 0.5);
+    c = over(vec4(fill * mix(0.55, 1.0, along), 0.9 * body * step(1.0 - v, along) * step(0.001, v)), c);
+    float ln = max(cov(abs(side + 6.0) - 1.6), cov(abs(side - 6.0) - 1.1));
+    return over(vec4(0.92, 0.95, 1.0, 0.95 * ln * cov(abs(along - 0.5) * len - len * 0.5)), c);
+}
+
+void main() {
+    vec2 p = v_uv * u_size;
+    vec4 c = vec4(0.0, 0.0, 0.0, 1.0);        // pure black (the car brightens dark tints); BMW's own gauges stay hidden under it
+
+    // ---- the card: left edge, flat top, a point on the right, flat bottom; the corners rounded ----
+    vec2 va = vec2(u_cardB.x, u_cardA.y), vv = u_cardB.yz, vb = vec2(u_cardB.w, u_cardA.z);
+    vec2 t1 = normalize(vv - va), t2 = normalize(vb - vv);
+    float d = smax(u_cardA.y - p.y, p.y - u_cardA.z, u_cardA.w);
+    d = smax(d, u_cardA.x - p.x, u_cardA.w);
+    d = smax(d, dot(p - va, vec2(t1.y, -t1.x)), u_cardA.w);
+    d = smax(d, dot(p - vv, vec2(t2.y, -t2.x)), u_cardA.w);
+    if (d < 2.0) {
+        float fx = clamp((p.x - u_cardA.x) / (u_cardB.y - u_cardA.x), 0.0, 1.0);
+        float fy = clamp((p.y - u_cardA.y) / (u_cardA.z - u_cardA.y), 0.0, 1.0);
+        vec3 col = mix(vec3(0.05, 0.14, 0.55), vec3(0.075, 0.2, 0.66), fx) * mix(1.05, 0.9, fy);
+        // a long facet line from the top edge down to the left; the card is a shade lighter to the right of it
+        float xd = 741.0 - 0.6028 * (p.y - 150.0);
+        col = mix(col, vec3(0.13, 0.33, 0.85), 0.4 * clamp((p.x - xd) / 6.0, 0.0, 1.0) * (1.0 - clamp((p.x - xd - 190.0) / 60.0, 0.0, 1.0)));
+        vec4 k = vec4(col, cov(d));
+        k = over(vec4(0.0, 0.02, 0.24, 0.55 * cov(abs((p.x - xd) * 0.857) - 0.9)), k);
+        k = over(vec4(0.45, 0.6, 1.0, 0.25 * cov(abs((p.x - xd) * 0.857 - 3.0) - 0.7)), k);
+        float xe = 956.0 - 0.6 * (p.y - 255.0);
+        k = over(vec4(0.0, 0.02, 0.24, 0.35 * cov(abs((p.x - xe) * 0.857) - 0.8)), k);
+        // the fine facets: a level line and a V under the stripes
+        float fl = min(segD(p, vec2(487.0, 307.0), vec2(652.0, 307.0)),
+                   min(segD(p, vec2(491.0, 318.0), vec2(554.0, 427.0)),
+                   min(segD(p, vec2(554.0, 427.0), vec2(610.0, 516.0)), segD(p, vec2(610.0, 516.0), vec2(655.0, 438.0)))));
+        k = over(vec4(0.5, 0.65, 1.0, 0.32 * cov(fl - 0.7)), k);
+        // the M stripes: soft, as the photo shows them
+        float s1 = 1.0 - smoothstep(u_sw.x * 0.1, u_sw.x * 0.6, segD(p, u_s1.xy, u_s1.zw));
+        float s2 = 1.0 - smoothstep(u_sw.y * 0.08, u_sw.y * 0.6, segD(p, u_s2.xy, u_s2.zw));
+        k = over(vec4(0.24, 0.52, 0.93, 0.9 * s1), k);
+        k = over(vec4(0.86, 0.1, 0.27, 0.88 * s2), k);
+        // the plate under the gear and speed: near black, a slanted left end
+        if (u_plateR > 0.0) {
+            float yy = clamp((p.y - u_plate.x) / (u_plate.y - u_plate.x), 0.0, 1.0);
+            float pd = max(max(mix(u_plate.z, u_plate.w, yy) - p.x, p.x - u_plateR), max(u_plate.x - p.y, p.y - u_plate.y));
+            k = over(vec4(0.01, 0.01, 0.11, 0.96 * cov(pd)), k);
+        }
+        k = over(vec4(0.55, 0.72, 1.0, 0.3 * cov(abs(d) - 1.0)), k);
+        c = over(k, c);
+    }
+    // the map window: cut out of the card
+    if (u_hole.z > 0.0) {
+        vec2 hs = u_hole.zw * 0.5;
+        vec2 q = abs(p - (u_hole.xy + hs)) - (hs - vec2(u_holeR));
+        c.a *= clamp(length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - u_holeR + 0.5, 0.0, 1.0);
+    }
+
+    // ---- the rev blade ----
+    float yT = u_bl.x, yB = u_bl.y;
+    float xl = u_bl.z + u_bl.w * (p.y - yT);
+    float xr = u_br.x + u_br.y * (p.y - yT);
+    float cl = 1.0 / sqrt(1.0 + u_bl.w * u_bl.w), cr = 1.0 / sqrt(1.0 + u_br.y * u_br.y);
+    float dl = (p.x - xl) * cl, dr = (xr - p.x) * cr;
+    float t = (u_sc.y - p.y) / (u_sc.y - u_sc.x);                 // 0 at the bottom of the scale, 1 at its top mark
+    float yn = u_sc.y - u_value * (u_sc.y - u_sc.x);
+    float inB = cov(max(max(-dl, -dr), max(yT - p.y, p.y - yB)));
+    if (inB > 0.0) {
+        float ft = clamp((p.y - yT) / (yB - yT), 0.0, 1.0);
+        vec3 dark = mix(vec3(0.6, 0.12, 0.16), vec3(0.3, 0.06, 0.11), ft);
+        vec3 lit = u_shiftNow > 0.5 ? vec3(1.0, 0.35, 0.3) : mix(vec3(1.0, 0.14, 0.2), vec3(0.72, 0.07, 0.13), ft);
+        vec3 col = p.y > yn ? lit : dark;
+        c = over(vec4(col, inB), c);
+        if (u_value > 0.003) c = over(vec4(1.0, 0.78, 0.8, 0.9 * cov(abs(p.y - yn) - 1.3) * inB), c);
+        // the shift marks on the right-hand side: yellow dashes before the redline, solid from it
+        if (dr > 5.0 && dr < 13.0) {
+            if (t >= u_redFrom && t <= 1.02) c = over(vec4(1.0, 0.25, 0.25, 0.95), c);
+            else if (t >= u_orange && t < u_redFrom && mod(p.y, 20.0) < 8.0) c = over(vec4(1.0, 0.86, 0.5, 0.95), c);
+        }
+    }
+    // the edges: light blue double line on the left, bright red with a pale rim on the right, the hook and the top line
+    float el = cov(abs(dl - 3.5) - 3.5) * step(yT - 1.0, p.y) * step(p.y, yB + 1.0);
+    c = over(vec4(0.5, 0.72, 1.0, el), c);
+    c = over(vec4(0.92, 0.96, 1.0, 0.85 * cov(abs(dl - 11.0) - 0.8) * step(yT, p.y) * step(p.y, yB)), c);
+    float er = cov(abs(dr - 5.0) - 5.0) * step(yT - 1.0, p.y) * step(p.y, yB + 1.0);
+    c = over(vec4(0.92, 0.13, 0.17, er), c);
+    c = over(vec4(1.0, 0.55, 0.55, 0.7 * cov(abs(dr - 8.5) - 0.8) * step(yT, p.y) * step(p.y, yB)), c);
+    float hk = segD(p, vec2(u_br.z, yT + 6.0), vec2(xl, yT + 6.0));
+    c = over(vec4(0.5, 0.72, 1.0, cov(hk - 1.8)), c);
+    c = over(vec4(0.9, 0.25, 0.3, 0.9 * cov(segD(p, vec2(u_br.z + 40.0, yT - 1.0), vec2(xr, yT - 1.0)) - 1.2)), c);
+    // the baseline: a white line with a red one under it, from the hook's side to the blade's right foot
+    float bl = segD(p, vec2(u_br.w, yB), vec2(xr - 4.0, yB));
+    c = over(vec4(0.95, 0.97, 1.0, cov(bl - 1.7)), c);
+    c = over(vec4(0.92, 0.13, 0.17, cov(segD(p, vec2(u_br.w + 30.0, yB + 8.0), vec2(xr + 4.0, yB + 8.0)) - 2.2)), c);
+    // ticks every 1000 rpm, running in from the right edge
+    float kk = floor(t * u_ticks + 0.5);
+    float yk = u_sc.y - kk / u_ticks * (u_sc.y - u_sc.x);
+    if (kk >= 0.0 && kk <= u_ticks && dr > 8.0 && dr < 52.0) c = over(vec4(0.5, 0.24, 0.27, 0.9 * cov(abs(p.y - yk) - 1.1)), c);
+
+    // ---- the two gauge pairs ----
+    c = gauge(p, u_g0, u_gv.x, vec3(0.5, 0.72, 1.0), c);
+    c = gauge(p, u_g1, u_gv.y, vec3(0.25, 0.45, 1.0), c);
+    gl_FragColor = c;
+}
+`;
+const NAVI = `// The Navi theme in one cluster-render "effect" layer (GLSL ES 1.00), after a photo of a BMW map view: a wide diagonal
+// speed band on the left (an outer white line, a textured blue stripe, a thin white divider, a purple stripe that fades
+// in from black, a thin pale edge, and a white marker across it at the speed), the big rounded map window, the white
+// line under the map that steps up at the right, and two thin bars along the bottom (fuel left, battery right). The
+// window is cut see-through while u_hole is set (Waze, Cluster Centre, Cluster Info); the band is drawn over it.
+// v_uv (0,0) is the top-left. Outside the shapes the backdrop is pure black (the car brightens dark tints).
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+varying vec2 v_uv;
+uniform vec2 u_size;
+uniform vec4 u_L;         // the band's outer-left line: x of the tip, y of the tip, dy per dx, y of the bottom line
+uniform vec4 u_W;         // divider offset (px right of the outer line) at y 300 and its change per y px, edge offset at y 300 and its change
+uniform float u_top;      // y where the purple stripe begins
+uniform vec2 u_sc;        // y of the scale's top mark and of its 0
+uniform float u_speed;    // 0..1 along the scale
+uniform vec4 u_ln;        // the white line under the map: x of its start, y, x where it steps up, x where it is back level
+uniform vec3 u_ln2;       // y of the upper level, x where the upper level fades out, x where it ends
+uniform vec4 u_barL;      // left bar: x, y, width, level 0..1
+uniform vec4 u_barR;
+uniform vec4 u_hole;      // map window x, y, w, h, already inset (w 0 = none)
+uniform float u_holeR;
+
+float cov(float d) { return clamp(0.5 - d, 0.0, 1.0); }
+vec4 over(vec4 top, vec4 under) {
+    float a = top.a + under.a * (1.0 - top.a);
+    if (a <= 0.0) return vec4(0.0);
+    return vec4((top.rgb * top.a + under.rgb * under.a * (1.0 - top.a)) / a, a);
+}
+float segD(vec2 p, vec2 a, vec2 b) { vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h); }
+// a thin bar with end ticks and a brighter, thicker part up to the level; u_ = (x, y, width, level)
+vec4 bar(vec2 p, vec4 b, vec3 glowA, vec3 glowB, vec4 c) {
+    float f = (p.x - b.x) / b.z;
+    if (f < -0.03 || f > 1.03 || abs(p.y - b.y) > 14.0) return c;
+    vec3 g = mix(glowA, glowB, clamp(f, 0.0, 1.0));
+    c = over(vec4(g, 0.5 * exp(-abs(p.y - b.y - 8.0) / 5.0) * cov(abs(f - 0.5) * b.z - b.z * 0.5)), c);
+    float on = step(f, b.w);
+    float th = mix(0.8, 2.0, on);
+    c = over(vec4(vec3(0.95, 0.97, 1.0) * mix(0.55, 1.0, on), cov(abs(p.y - b.y) - th) * cov(abs(f - 0.5) * b.z - b.z * 0.5)), c);
+    float tk = cov(abs(mod(p.x - b.x + 12.5, 25.0) - 12.5) - 0.6) * cov(abs(p.y - b.y) - 5.0) * 0.4;
+    c = over(vec4(0.9, 0.95, 1.0, tk * cov(abs(f - 0.5) * b.z - b.z * 0.5)), c);
+    c = over(vec4(0.95, 0.97, 1.0, cov(min(abs(p.x - b.x), abs(p.x - b.x - b.z)) - 1.0) * cov(abs(p.y - b.y) - 6.0)), c);
+    return c;
+}
+
+void main() {
+    vec2 p = v_uv * u_size;
+    vec4 c = vec4(0.0, 0.0, 0.0, 1.0);
+    // the map window: cut out of the black, with a thin pale outline just outside it
+    if (u_hole.z > 0.0) {
+        vec2 hs = u_hole.zw * 0.5;
+        vec2 q = abs(p - (u_hole.xy + hs)) - (hs - vec2(u_holeR));
+        float hd = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - u_holeR;
+        c.a *= clamp(hd + 0.5, 0.0, 1.0);
+        c = over(vec4(0.6, 0.72, 0.95, 0.22 * cov(abs(hd - 2.0) - 0.7)), c);
+    }
+    // the line under the map
+    float lw = 1.7;
+    float L1 = segD(p, vec2(u_ln.x, u_ln.y), vec2(u_ln.z, u_ln.y));
+    float L2 = segD(p, vec2(u_ln.z, u_ln.y), vec2(u_ln.w, u_ln2.x));
+    float L3 = segD(p, vec2(u_ln.w, u_ln2.x), vec2(u_ln2.z, u_ln2.x));
+    float fade = 1.0 - clamp((p.x - u_ln2.y) / (u_ln2.z - u_ln2.y), 0.0, 1.0);
+    c = over(vec4(0.62, 0.72, 0.95, 0.3 * exp(-L1 / 4.0)), c);
+    c = over(vec4(0.96, 0.97, 1.0, max(cov(L1 - lw), max(cov(L2 - lw), cov(L3 - lw * (0.6 + 0.4 * fade)) * fade))), c);
+
+    // the speed band
+    float xl = u_L.x + (p.y - u_L.y) / u_L.z;
+    float s = p.x - xl;
+    float kk = u_L.z / sqrt(1.0 + u_L.z * u_L.z);
+    float sep = u_W.x + u_W.y * (p.y - 300.0), edge = u_W.z + u_W.w * (p.y - 300.0);
+    if (p.y >= u_L.y - 1.0 && p.y <= u_L.w + 1.0 && s > -3.0 && s < edge + 4.0) {
+        float down = cov(p.y - u_L.w);
+        // the textured blue stripe
+        float bl = cov(-(s - 7.0) * kk) * cov((s - (sep - 4.0)) * kk);
+        float tex = 0.9 + 0.1 * sin((p.x + p.y) * 0.45) * sin((p.x - p.y) * 0.3);
+        c = over(vec4(vec3(0.1, 0.18, 0.84) * tex, 0.96 * bl * down), c);
+        // the purple stripe: black at its left, then violet, brightest at the pale edge and low down
+        float pu = clamp((s - sep - 5.0) / (edge - sep - 5.0), 0.0, 1.0);
+        vec3 pc = mix(vec3(0.02, 0.0, 0.05), mix(vec3(0.3, 0.07, 0.52), vec3(0.56, 0.26, 0.9), pu), smoothstep(0.0, 0.55, pu));
+        pc *= 0.35 + 0.65 * smoothstep(u_top, u_top + 260.0, p.y);
+        c = over(vec4(pc, cov(-(s - sep - 5.0) * kk) * cov((s - edge) * kk) * step(u_top, p.y) * down), c);
+        // the outer white line, the divider, the pale edge
+        c = over(vec4(0.97, 0.98, 1.0, cov(abs(s - 5.0) * kk - 3.6) * down), c);
+        c = over(vec4(0.92, 0.95, 1.0, 0.95 * cov(abs(s - sep) * kk - 0.9) * down), c);
+        c = over(vec4(0.95, 0.82, 1.0, 0.9 * cov(abs(s - edge) * kk - 0.9) * step(u_top, p.y) * down), c);
+        // the marker across the band at the speed
+        float ym = u_sc.y - u_speed * (u_sc.y - u_sc.x);
+        float mk = cov(abs(p.y - ym) - 2.2) * cov(-(s - 2.0) * kk) * cov((s - edge) * kk);
+        c = over(vec4(1.0, 1.0, 1.0, 0.95 * mk * down), c);
+    }
+    // the bars along the bottom
+    c = bar(p, u_barL, vec3(0.15, 0.3, 1.0), vec3(0.15, 0.3, 1.0), c);
+    c = bar(p, u_barR, vec3(0.95, 0.15, 0.2), vec3(0.2, 0.4, 1.0), c);
+    gl_FragColor = c;
+}
+`;
 
 const ATEXT = `// Atlas text for a cluster-render "effect" layer (GLSL ES 1.00): u_cells equal cells across the layer, each
 // showing one glyph of the R8 glyph atlas bound to u_font (u_grid.x columns by u_grid.y rows of cells), picked
@@ -1358,4 +1610,4 @@ void main() {
 }
 `;
 
-module.exports = { shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, shiftlight: SHIFTLIGHT, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, dial: DIAL, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES };
+module.exports = { shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, shiftlight: SHIFTLIGHT, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, mblade: MBLADE, navi: NAVI, boxes: BOXES, atext: ATEXT, dial: DIAL, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES };

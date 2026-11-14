@@ -121,6 +121,14 @@
           "Sport"
         ],
         [
+          "mblade",
+          "M Blade"
+        ],
+        [
+          "navi",
+          "Navi"
+        ],
+        [
           "minimal",
           "Minimal"
         ],
@@ -191,6 +199,14 @@
           "Sport"
         ],
         [
+          "mblade",
+          "M Blade"
+        ],
+        [
+          "navi",
+          "Navi"
+        ],
+        [
           "minimal",
           "Minimal"
         ],
@@ -247,6 +263,14 @@
           "Sport"
         ],
         [
+          "mblade",
+          "M Blade"
+        ],
+        [
+          "navi",
+          "Navi"
+        ],
+        [
           "minimal",
           "Minimal"
         ],
@@ -301,6 +325,14 @@
         [
           "sport",
           "Sport"
+        ],
+        [
+          "mblade",
+          "M Blade"
+        ],
+        [
+          "navi",
+          "Navi"
         ],
         [
           "minimal",
@@ -1101,7 +1133,7 @@
     },
     {
       "key": "emblem",
-      "label": "Sport theme: lettering at the top",
+      "label": "Sport, M Blade and Navi themes: lettering at the top",
       "type": "choice",
       "default": "oo4b",
       "options": [

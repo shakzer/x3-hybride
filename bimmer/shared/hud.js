@@ -82,9 +82,22 @@
  *             "ticks" [speed, rpm], "rpmMax" (speed follows SPEED_SCALE), "fuelSeg" / "oilSeg" [fullX, fullY,
  *             emptyX, emptyY] (the oil bar shows the "oilSignal" instead, with "oilMin" / "oilMax": hvSoc 0 / 100 for the battery), "strip" [left end x, y, h, slant], "topEnd" x; the middle is deep blue with a lighter glow (the setting "sportTint", % of the car's own blue, 0 = black), and the map
  *             window is cut see-through while "holeWhen" is on ("hole", "holeInset", "holeRadius" as fill)
+ *   mblade    effect layer; the M Blade theme (shaders.js mblade): the blue card "card" [left x, top y, bottom y, rounding] and "cardB"
+ *             [x where the top edge ends, x and y of the point on the right, x where the bottom edge starts], the gear "plate"
+ *             [top y, bottom y, left x at the top, at the bottom] with its right end "plateRight" (hidden while the window is open), the M
+ *             stripes "stripe1" / "stripe2" [x, y top, x, y bottom] with "stripeW" [px, px], the rev blade "bl" [top y, bottom y, left edge x at
+ *             the top, its slope] and "br" [right edge x at the top, its slope, x of the hook's left end, x of the baseline's left end], "scale"
+ *             [y of the max mark, y of 0], "rpmMax" (7000), two gauge pairs "g0" (the hybrid battery, 0..100 %) and "g1" (fuel): [x, y of the
+ *             top end, x, y of the bottom end]; "hole", "holeWhen", "holeInset", "holeRadius" as fill (the card is cut over the map window)
+ *   navi      effect layer; the Navi theme (shaders.js navi): the speed band on the left "band" { tip [x, y], slope (dy per dx), bottom (y),
+ *             sep [px, per y] and edge [px, per y] (offsets right of the outer line at y 300), top (y where the purple stripe begins) },
+ *             "scale" [y of the top mark, y of 0] (SPEED_SCALE, the marker rides it), the line under the map "line" [x0, y, x of the
+ *             step up, x where it is back level] and "line2" [upper y, x where it starts to fade, x where it ends], the two bottom bars
+ *             "barL" (fuel) and "barR" (hybrid battery) [x, y, width]; the window is cut with "hole" / "holeWhen" as fill
  *   segbar    effect layer; "max" segments, the first round(signal) lit (e.g. "setupLevel:engine"), "slant" px
  *   emblem    image layer; lettering baked by tools/bake_emblems.py (hud/emblems/<name>.json), painted in a light blue / dark blue /
- *             red gradient (emblems.js); "setting" names the choice setting that picks which (off = none; hidden while the Waze map is up)
+ *             red gradient (emblems.js); "setting" names the choice setting that picks which (off = none; hidden while the Waze map is up,
+ *             unless the widget says "keepWithMap": true, for a theme that keeps it clear of the map window)
  *   icon      image layer; a line icon from icons.js ("icon": gauge, shock, wheel, cog, stack, therm, oilcan, fuel)
  *   arc also takes "start" and "sweep" in degrees (clockwise from 12 o'clock; negative = anticlockwise)
  *   grid      calibration: effect layer of lines every "step" px (brighter every "major" steps)
@@ -1843,7 +1856,7 @@ class HudApp {
         else if (w.type === 'emblem') {
             // the picked lettering ("setting": the choice setting that names it, "off" = none), hidden while the Waze map is up in the theme
             const name = String(this.setting(w.setting || 'emblem') || 'off');
-            const mask = name === 'off' || this.setting('mapUp') === true || !/^[a-z0-9_]+$/i.test(name) ? null : hudData.json('emblems/' + name + '.json');
+            const mask = name === 'off' || (this.setting('mapUp') === true && !w.keepWithMap) || !/^[a-z0-9_]+$/i.test(name) ? null : hudData.json('emblems/' + name + '.json');
             this._blit(x, null, paintEmblem(mask, w.w, w.h, w.stops));
         }
         else if (w.type === 'sdash') {
@@ -1864,6 +1877,46 @@ class HudApp {
             c.uniform(ref, 'u_strip', w.strip);
             c.uniform(ref, 'u_topEnd', [w.topEnd]);
             c.uniform(ref, 'u_tint', [this.ctx.settings.item('sportTint') ? Math.max(0, this.setting('sportTint')) / 100 : 0]);
+        } else if (w.type === 'mblade') {
+            // the M Blade theme (shaders.js mblade): geometry in panel px from the layout, see the widget notes in the header
+            const [redFrom, orange] = this._redMarks(w.rpmMax || 7000);
+            const holeOn = this._hole(w)[2] > 0;
+            c.uniform(ref, 'u_size', [w.w, w.h]);
+            c.uniform(ref, 'u_cardA', w.card);
+            c.uniform(ref, 'u_cardB', w.cardB);
+            c.uniform(ref, 'u_plate', w.plate || [0, 0, 0, 0]);
+            c.uniform(ref, 'u_plateR', [holeOn || !w.plate ? 0 : w.plateRight || 0]);
+            c.uniform(ref, 'u_s1', w.stripe1 || [0, 0, 0, 0]);
+            c.uniform(ref, 'u_s2', w.stripe2 || [0, 0, 0, 0]);
+            c.uniform(ref, 'u_sw', w.stripeW || [60, 44]);
+            c.uniform(ref, 'u_bl', w.bl);
+            c.uniform(ref, 'u_br', w.br);
+            c.uniform(ref, 'u_sc', w.scale);
+            c.uniform(ref, 'u_g0', w.g0);
+            c.uniform(ref, 'u_g1', w.g1);
+            c.uniform(ref, 'u_gv', [0, 0]);
+            c.uniform(ref, 'u_ticks', [(w.rpmMax || 7000) / 1000]);
+            c.uniform(ref, 'u_value', [0]);
+            c.uniform(ref, 'u_orange', [orange]);
+            c.uniform(ref, 'u_redFrom', [redFrom]);
+            c.uniform(ref, 'u_shiftNow', [0]);
+            c.uniform(ref, 'u_red', rgb(t.hot));
+            c.uniform(ref, 'u_hole', this._hole(w));
+            c.uniform(ref, 'u_holeR', [this._holeRadius(w)]);
+        } else if (w.type === 'navi') {
+            const B = w.band, L = w.line, L2 = w.line2;
+            c.uniform(ref, 'u_size', [w.w, w.h]);
+            c.uniform(ref, 'u_L', [B.tip[0], B.tip[1], B.slope, B.bottom]);
+            c.uniform(ref, 'u_W', [B.sep[0], B.sep[1], B.edge[0], B.edge[1]]);
+            c.uniform(ref, 'u_top', [B.top]);
+            c.uniform(ref, 'u_sc', w.scale || [236, B.bottom]);
+            c.uniform(ref, 'u_speed', [0]);
+            c.uniform(ref, 'u_ln', L);
+            c.uniform(ref, 'u_ln2', L2);
+            c.uniform(ref, 'u_barL', [w.barL[0], w.barL[1], w.barL[2], 0]);
+            c.uniform(ref, 'u_barR', [w.barR[0], w.barR[1], w.barR[2], 0]);
+            c.uniform(ref, 'u_hole', this._hole(w));
+            c.uniform(ref, 'u_holeR', [this._holeRadius(w)]);
         } else if (w.type === 'mdash') {
             const ty = w.tyres || [0, 0, 0], L = w.gaugeL || {}, R = w.gaugeR || {}, b = w.blade || {};
             const bars = Array.isArray(w.segbars) ? w.segbars.slice(0, 4) : [];
@@ -2335,6 +2388,29 @@ class HudApp {
             x.c.uniform(x.ref, 'u_rpm', [vals[1]]);
             x.c.uniform(x.ref, 'u_fuel', [vals[2]]);
             x.c.uniform(x.ref, 'u_oil', [vals[3]]);
+        } else if (w.type === 'mblade') {
+            // rpm on the blade; the two gauges are the hybrid battery (0..100 %, in place of the oil temperature) and the fuel
+            const rpm = this._raw('rpm'), sp = this._shift(), hv = this._raw('hvSoc'), fuel = this._raw('fuel');
+            const q = (v) => Math.round(Math.min(1, Math.max(0, v)) * 500) / 500;
+            const vals = [q(isNum(rpm) ? rpm / (w.rpmMax || 7000) : 0), q(isNum(hv) ? hv / 100 : 0), q(isNum(fuel) ? fuel : 0)];
+            const key = vals.join('|') + '|' + sp.now;
+            if (!force && key === x.last) return;
+            x.last = key;
+            x.c.uniform(x.ref, 'u_value', [vals[0]]);
+            x.c.uniform(x.ref, 'u_gv', [vals[1], vals[2]]);
+            x.c.uniform(x.ref, 'u_shiftNow', [sp.now ? 1 : 0]);
+        } else if (w.type === 'navi') {
+            // the marker on the speed band (the same scale as the Sport theme's) and the two bottom bars: fuel left, battery right
+            const us = this.setting('units') === 'us';
+            const sp = this._raw('speed'), fuel = this._raw('fuel'), hv = this._raw('hvSoc');
+            const q = (v) => Math.round(Math.min(1, Math.max(0, v)) * 500) / 500;
+            const vals = [q(isNum(sp) ? scaleFrac(us ? sp * 0.621371 : sp, SPEED_SCALE[us ? 'us' : 'metric']) : 0), q(isNum(fuel) ? fuel : 0), q(isNum(hv) ? hv / 100 : 0)];
+            const key = vals.join('|');
+            if (!force && key === x.last) return;
+            x.last = key;
+            x.c.uniform(x.ref, 'u_speed', [vals[0]]);
+            x.c.uniform(x.ref, 'u_barL', [w.barL[0], w.barL[1], w.barL[2], vals[1]]);
+            x.c.uniform(x.ref, 'u_barR', [w.barR[0], w.barR[1], w.barR[2], vals[2]]);
         } else if (w.type === 'mdash') {
             const vals = x.gauges.map(([u, G]) => {
                 const v = G.signal ? this._raw(G.signal) : null;
