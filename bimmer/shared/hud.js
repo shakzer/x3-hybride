@@ -80,7 +80,7 @@
  *             "k" [above, below, round] for the left bracket's outer line (the right one is mirrored), "band"
  *             width, "inner" (the inner line's distance from the outer one), "scale" [y of 0, y of the top mark],
  *             "ticks" [speed, rpm], "rpmMax" (speed follows SPEED_SCALE), "fuelSeg" / "oilSeg" [fullX, fullY,
- *             emptyX, emptyY] (the oil bar shows the "oilSignal" instead, with "oilMin" / "oilMax": hvSoc 0 / 100 for the battery), "strip" [left end x, y, h, slant], "topEnd" x; the middle is black, and the map
+ *             emptyX, emptyY] (the oil bar shows the "oilSignal" instead, with "oilMin" / "oilMax": hvSoc 0 / 100 for the battery), "strip" [left end x, y, h, slant], "topEnd" x; the middle is deep blue with a lighter glow (the setting "sportTint", % of the car's own blue, 0 = black), and the map
  *             window is cut see-through while "holeWhen" is on ("hole", "holeInset", "holeRadius" as fill)
  *   segbar    effect layer; "max" segments, the first round(signal) lit (e.g. "setupLevel:engine"), "slant" px
  *   emblem    image layer; lettering baked by tools/bake_emblems.py (hud/emblems/<name>.json), painted in a light blue / dark blue /
@@ -1863,6 +1863,7 @@ class HudApp {
             c.uniform(ref, 'u_holeR', [this._holeRadius(w)]);
             c.uniform(ref, 'u_strip', w.strip);
             c.uniform(ref, 'u_topEnd', [w.topEnd]);
+            c.uniform(ref, 'u_tint', [this.ctx.settings.item('sportTint') ? Math.max(0, this.setting('sportTint')) / 100 : 0]);
         } else if (w.type === 'mdash') {
             const ty = w.tyres || [0, 0, 0], L = w.gaugeL || {}, R = w.gaugeR || {}, b = w.blade || {};
             const bars = Array.isArray(w.segbars) ? w.segbars.slice(0, 4) : [];

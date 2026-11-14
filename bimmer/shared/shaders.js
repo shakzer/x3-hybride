@@ -786,7 +786,8 @@ const SDASH = `// The Sport theme in one cluster-render "effect" layer (GLSL ES 
 // line, a band that fills from the bottom (white marker at the value), a dark gap and a thin inner line round a
 // black middle: plain black, or the map through a see-through rounded hole (u_hole; only the bottom strip draws
 // over it, the fuel and oil bars are off while it is open). Two-tone fuel and oil bars inside the brackets, a blue / red strip at the bottom. v_uv (0,0) is
-// the top-left. The backdrop is pure black: the car brightens dark tints (seen Nov 5 2026), so no dark panels.
+// the top-left. Outside the brackets the backdrop is pure black (the car brightens dark tints, seen Nov 5 2026); inside
+// them it is BMW's own deep blue with a lighter glow in the middle, as on the car's Sport view, scaled by u_tint (0 = pure black).
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
 #else
@@ -812,6 +813,7 @@ uniform vec4 u_hole;      // map window x, y, w, h, already inset (w 0 = none)
 uniform float u_holeR;    // the hole's corner radius px
 uniform vec4 u_strip;     // bottom strip: left end x, top y, height, slant px
 uniform float u_topEnd;   // the top lines run from the bracket to this x (left; mirrored on the right)
+uniform float u_tint;     // 0..: the blue of the middle (1 = the car's own, from a photo of its Sport view); 0 = black
 
 const vec3 BLUE_LINE = vec3(0.36, 0.62, 1.0);
 const vec3 BLUE_BAND = vec3(0.13, 0.3, 0.78);
@@ -906,6 +908,14 @@ void main() {
     vec2 p = v_uv * u_size;
     vec2 pm = vec2(u_size.x - p.x, p.y);
     vec4 c = vec4(0.0, 0.0, 0.0, 1.0);
+    if (u_tint > 0.0) {
+        // inside both inner lines, between the top run and the bottom line: deep blue, a lighter glow round the middle
+        float yIn = step(u_geo.x + 10.0, p.y) * step(p.y, u_geo.z - 8.0);
+        float il = clamp(dIn(p) - u_inner - 2.0, 0.0, 1.0), ir = clamp(dIn(pm) - u_inner - 2.0, 0.0, 1.0);
+        float gx = (p.x - u_size.x * 0.5) / 440.0, gy = (p.y - (u_geo.y + 30.0)) / 190.0;
+        vec3 navy = mix(vec3(0.012, 0.062, 0.115), vec3(0.036, 0.17, 0.25), exp(-gx * gx - gy * gy)) * u_tint;
+        c.rgb = navy * (il * ir * yIn);
+    }
 
     c = bracket(p, u_speed, 2.0, 2.0, u_ticks.x, BLUE_LINE, BLUE_BAND, BLUE_LIT, BLUE_IN, c);
     c = bracket(pm, u_rpm, u_redFrom, u_orange, u_ticks.y, RED_LINE, RED_BAND, RED_LIT, RED_IN, c);

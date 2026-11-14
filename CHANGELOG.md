@@ -3,6 +3,7 @@
 ## 14 novembre 2026
 
 ### bimmer/ (bimmer-lab/apps)
+- Thème Sport : fond bleu nuit avec lueur centrale (réglage `sportTint`, 80 % par défaut, 0 = noir) ; barre du bas remontée pour dégager le voyant de ceinture de BMW ; test `tools/test_belt_clear.js`.
 - Thèmes M et Sport : **shift light façon BMW** (nouveau type de widget `shiftlight`, `shared/shaders.js`, `shared/shift_light.js` ; traits orange de 3 000 à 4 500 tr/min, bloc rouge à 4 500, clignotement dès 5 500) ; réglages `stockShiftLight`, `shiftLightRed`, `shiftLightFlash` ; test `tools/test_shiftlight.js`.
 - Page de réglages : lignes plus fines quand il y a plus de réglages que de place (le dernier n'est plus coupé).
 - Cluster Themes : **fenêtre du centre pour Cluster Centre et Cluster Info** (GT3, M, Sport). Le thème l'ouvre quand une de ces apps la demande (`/dev/shm/cluster-themes/window-<app>.json`), publie son rectangle et son état dans `themes.json` (`window`, `open`) ; réglage « Centre window for Cluster Centre / Cluster Info » (onglet Map, activé par défaut). `shared/cluster_info.js`, `shared/hud.js`.
@@ -10,7 +11,7 @@
 - Tests : `tools/test_cluster_info.js` (fenêtre, zone libre pour chaque mise en page du HUD).
 
 ### eroobeeroo/ (eroobeeroo/idrive7-cluster-info)
-- Cluster Centre : la page « Signals » liste aussi, d'après le catalogue de la voiture, les champs de `KombiIF` et de l'ordinateur de bord, ceux qui ressemblent à un bouton du volant ou du commodo, et ceux qui ressemblent à un titre média (`signal_finder.js` : options `iface` et `max`, test `tools/test_finder.js`). Rien n'est lu pour l'instant.
+- Cluster Centre : la page « Signals » liste aussi, d'après le catalogue de la voiture, les champs de `KombiIF` et de l'ordinateur de bord, ceux qui ressemblent à un bouton du volant ou du commodo, les portes et le check control, la limite de vitesse, et ceux qui ressemblent à un titre média (`signal_finder.js` : options `iface` et `max`, test `tools/test_finder.js`). Rien n'est lu pour l'instant.
 - Cluster Centre : dans la fenêtre d'un thème, les pages sont réduites à sa taille (`fitBox` dans `pages.js`, petits textes rognés à la fenêtre) ; réglage `yieldThemes` : fenêtre (par défaut) / retrait / afficher quand même ; demande la fenêtre au thème (`shared/yield.js`).
 - Cluster Info : réglage « Show the panel » sur le HUD par défaut ; dans la fenêtre d'un thème le panneau reste dans la fenêtre (sans Waze : seul, sauf si les pages de Cluster Centre y sont) ; sur le HUD, il se place dans la zone libre de la mise en page de HUD Widgets ; `apps/cluster_info/yield.js` (copie de `shared/yield.js`).
 - Tests : `tools/test_yield.js`, `tools/test_centre.js` (pages dans les fenêtres M et Sport), `kit/tools/test_cluster_info_overlay.js` (fenêtre, zone libre), `kit/tools/test_cluster_info.js` rendu indépendant d'un thème qui tourne.

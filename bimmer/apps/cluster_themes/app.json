@@ -691,6 +691,21 @@
       "default": true
     },
     {
+      "key": "sportTint",
+      "label": "Sport theme: blue background",
+      "type": "number",
+      "unit": "%",
+      "default": 80,
+      "steps": [
+        0,
+        30,
+        55,
+        80,
+        110,
+        140
+      ]
+    },
+    {
       "key": "stripClear",
       "label": "Leave BMW's bottom strip clear",
       "type": "bool",
